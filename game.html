@@ -98,7 +98,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
     <div class="room-code" id="roomCodeDisplay">ROOM: ----</div>
   </div>
 
-  <div class="babak-info" id="babakInfo">Round 1 / 10</div>
+  <div class="babak-info" id="babakInfo">Round 1 / 10 | Turn: ...</div>
   
   <div class="score-board">
     <div class="score-card" id="scoreCard1">
@@ -158,7 +158,7 @@ lucide.createIcons();
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
-let playerNum = Number(localStorage.getItem('playerNum')) || 0;
+let playerNum = Number(localStorage.getItem('playerNum'));
 
 roomId = roomId ? roomId.toUpperCase() : null;
 document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + (roomId || '----');
@@ -171,7 +171,7 @@ let timerInterval = null;
 let unsubscribe = null;
 let playerRef = null;
 
-// 100 KARTU LENGKAP
+// 100 KARTU
 const kartu = [
   {kategori:"FRUIT", jawaban:"JERUK", hint:"J _ R _ K"},
   {kategori:"CITY", jawaban:"JAKARTA", hint:"J _ K _ R T _"},
@@ -270,8 +270,9 @@ const kartu = [
   {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
 ];
 
-if(!roomId || !namaPlayer || !playerNum){
-  alert("❌ Data Hilang! Back to lobby");
+// FIX 1: VALIDASI PLAYER NUM
+if(!roomId || !namaPlayer || !playerNum || playerNum < 1){
+  alert("❌ Data Hilang! Masuk lobby dulu buat set Player 1/2");
   window.location.href = './index.html';
 }
 
@@ -292,10 +293,10 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
 
   roomData = snapshot.val();
   
-  // FIX 1: AUTO ACAK DADU KALO GILIRAN KOSONG
+  // FIX 2: AUTO ACAK DADU KALO 2 PLAYER UDAH ADA TAPI GILIRAN KOSONG
   if(roomData.player1 && roomData.player2 && !roomData.giliran){
     await update(roomRef, { 
-      giliran: Math.floor(Math.random()*2) + 1,
+      giliran: Math.random() > 0.5 ? 1 : 2,
       babak: 1,
       status: 'waiting'
     });
@@ -305,7 +306,6 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
   updateUI();
 }, (error)=>{
   console.error("Firebase error:", error);
-  alert('Firebase Error: ' + error.message);
 });
 
 function updateUI(){
@@ -315,12 +315,11 @@ function updateUI(){
   document.getElementById('scoreName2').textContent = roomData.player2?.nama?.toUpperCase() || 'WAITING...';
   document.getElementById('score1').textContent = roomData.player1?.score || 0;
   document.getElementById('score2').textContent = roomData.player2?.score || 0;
-  document.getElementById('babakNow').textContent = roomData.babak || 1;
 
   const giliran = roomData.giliran || 1;
-  
-  // FIX 2: INFO GILIRAN JELAS
   const namaGiliran = giliran == 1 ? roomData.player1?.nama : roomData.player2?.nama;
+  
+  // FIX 3: INFO GILIRAN JELAS
   document.getElementById('babakInfo').textContent = `Round ${roomData.babak || 1} / 10 | Turn: ${(namaGiliran || '...').toUpperCase()}`;
   
   document.getElementById('scoreCard1').classList.toggle('active', giliran==1);
@@ -360,7 +359,6 @@ function updateUI(){
 }
 
 window.ambilKartu = async function(){
-  // FIX 3: CEK ROOMDATA DULU
   if(!roomData || !roomData.player1 || !roomData.player2) {
     alert('Waiting for 2nd player...');
     return;
