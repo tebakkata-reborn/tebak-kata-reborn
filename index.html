@@ -23,7 +23,6 @@ const firebaseConfig = {
 let db;
 try {
   const app = initializeApp(firebaseConfig);
-  // PENTING: kasih databaseURL di getDatabase juga biar konek ke asia-southeast1
   db = getDatabase(app, firebaseConfig.databaseURL);
   window.db = db;
   window.ref = ref;
@@ -33,18 +32,8 @@ try {
   window.update = update;
   window.remove = remove;
   window.serverTimestamp = serverTimestamp;
-  console.log("✅ Firebase connected to asia-southeast1!");
-
-  // Kasih toast setelah 1 detik biar DOM siap
-  setTimeout(()=>{
-    showToast("Firebase Connected!", "success");
-  }, 1000);
-
 } catch(e) {
-  console.error("❌ Firebase error:", e);
-  setTimeout(()=>{
-    showToast("Firebase Error: " + e.message, "error");
-  }, 1000);
+  console.error("Firebase error:", e);
 }
 </script>
 <style>
@@ -58,160 +47,33 @@ try {
   --text:#F8FAFC;
   --text-dim:#94A3B8;
 }
-
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
-body{
-  background:var(--bg-dark);
-  color:var(--text);
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
-
+body{background:var(--bg-dark);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .container{width:100%;max-width:480px}
-
-.logo{
-  font-family:'Orbitron';font-size:38px;font-weight:900;
-  background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink),var(--neon-cyan));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-align:center;margin-bottom:8px;
-}
-
-.subtitle{
-  color:var(--text-dim);text-align:center;margin-bottom:30px;
-  font-size:13px;text-transform:uppercase;letter-spacing:3px;
-}
-
-.glass-card{
-  background:var(--glass);
-  backdrop-filter:blur(20px);
-  border:1px solid rgba(139,92,246,0.3);
-  border-radius:28px;
-  padding:30px;
-  box-shadow:0 0 50px rgba(139,92,246,0.2);
-}
-
+.logo{font-family:'Orbitron';font-size:38px;font-weight:900;background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink),var(--neon-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:8px}
+.subtitle{color:var(--text-dim);text-align:center;margin-bottom:30px;font-size:13px;text-transform:uppercase;letter-spacing:3px}
+.glass-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,0.3);border-radius:28px;padding:30px;box-shadow:0 0 50px rgba(139,92,246,0.2)}
 .input-group{margin-bottom:20px}
-.input-group label{
-  font-size:11px;color:var(--neon-cyan);margin-bottom:8px;
-  display:block;text-transform:uppercase;letter-spacing:1px;font-weight:600
-}
-
-.input-group input{
-  width:100%;padding:16px;border-radius:14px;
-  border:2px solid rgba(139,92,246,0.3);
-  background:rgba(5,8,22,0.6);
-  color:var(--text);font-size:16px;outline:none;
-  text-transform:uppercase;font-family:'Orbitron';
-}
-
-.btn{
-  width:100%;padding:18px;border:none;border-radius:16px;
-  background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));
-  color:white;font-weight:700;font-size:16px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  font-family:'Orbitron';margin-bottom:10px;
-}
-
+.input-group label{font-size:11px;color:var(--neon-cyan);margin-bottom:8px;display:block;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+.input-group input{width:100%;padding:16px;border-radius:14px;border:2px solid rgba(139,92,246,0.3);background:rgba(5,8,22,0.6);color:var(--text);font-size:16px;outline:none;text-transform:uppercase;font-family:'Orbitron'}
+.btn{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));color:white;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Orbitron';margin-bottom:10px}
 .btn:hover{transform:translateY(-2px)}
-.btn-outline{
-  background:transparent;
-  border:2px solid var(--neon-purple);
-}
-
-.btn-quick{
-  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
-}
-
-.divider{
-  display:flex;align-items:center;margin:25px 0;
-  color:var(--text-dim);font-size:11px;text-transform:uppercase;
-  letter-spacing:2px
-}
-
-.divider::before,.divider::after{
-  content:'';flex:1;height:2px;
-  background:linear-gradient(90deg, transparent, var(--neon-purple), transparent);
-  margin:0 15px
-}
-
-.room-code{
-  font-family:'Orbitron';font-size:42px;font-weight:900;letter-spacing:12px;
-  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  text-align:center;margin:25px 0;
-}
-
+.btn-outline{background:transparent;border:2px solid var(--neon-purple)}
+.btn-quick{background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green))}
+.divider{display:flex;align-items:center;margin:25px 0;color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:2px}
+.divider::before,.divider::after{content:'';flex:1;height:2px;background:linear-gradient(90deg, transparent, var(--neon-purple), transparent);margin:0 15px}
+.room-code{font-family:'Orbitron';font-size:42px;font-weight:900;letter-spacing:12px;background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin:25px 0}
 .waiting{text-align:center;padding:40px}
-.waiting h3{
-  font-family:'Orbitron';font-size:20px;margin-bottom:15px;color:var(--neon-cyan);
-}
-
-.room-list{
-  max-height:280px;
-  overflow-y:auto;
-  padding-right:5px;
-}
-
-.room-item{
-  background:rgba(139,92,246,0.1);
-  border:1px solid rgba(139,92,246,0.3);
-  border-radius:14px;
-  padding:14px;
-  margin-bottom:10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  cursor:pointer;
-}
-
-.room-item.full{
-  opacity:0.5;
-  cursor:not-allowed;
-}
-
-.room-id{
-  font-family:'Orbitron';font-size:16px;font-weight:700;
-  letter-spacing:2px;
-}
-
-.room-status{
-  padding:6px 12px;
-  border-radius:20px;
-  font-size:10px;
-  font-weight:700;
-  text-transform:uppercase;
-  font-family:'Orbitron';
-}
-
-.status-available{
-  background:rgba(16,185,129,0.2);
-  color:var(--neon-green);
-  border:1px solid var(--neon-green);
-}
-
-.status-full{
-  background:rgba(239,68,68,0.2);
-  color:#EF4444;
-  border:1px solid #EF4444;
-}
-
-.no-room{
-  text-align:center;padding:40px 20px;color:var(--text-dim);
-  font-size:13px;
-}
-
-.toast{
-  position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);
-  background:linear-gradient(135deg,var(--neon-green),#059669);
-  color:white;padding:16px 24px;border-radius:14px;
-  font-size:14px;font-weight:600;opacity:0;transition:all 0.4s;
-  z-index:2000;display:flex;align-items:center;gap:10px;
-  font-family:'Orbitron';
-}
-
+.waiting h3{font-family:'Orbitron';font-size:20px;margin-bottom:15px;color:var(--neon-cyan)}
+.room-list{max-height:280px;overflow-y:auto;padding-right:5px}
+.room-item{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.room-item.full{opacity:0.5;cursor:not-allowed}
+.room-id{font-family:'Orbitron';font-size:16px;font-weight:700;letter-spacing:2px}
+.room-status{padding:6px 12px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;font-family:'Orbitron'}
+.status-available{background:rgba(16,185,129,0.2);color:var(--neon-green);border:1px solid var(--neon-green)}
+.status-full{background:rgba(239,68,68,0.2);color:#EF4444;border:1px solid #EF4444}
+.no-room{text-align:center;padding:40px 20px;color:var(--text-dim);font-size:13px}
+.toast{position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);background:linear-gradient(135deg,var(--neon-green),#059669);color:white;padding:16px 24px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transition:all 0.4s;z-index:2000;display:flex;align-items:center;gap:10px;font-family:'Orbitron'}
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
 .toast.error{background:linear-gradient(135deg,#EF4444,#DC2626)}
 </style>
@@ -219,41 +81,24 @@ body{
 <body>
 
 <div class="container">
-
   <div id="screen-menu">
     <div class="logo">TEBAK KATA</div>
     <div class="subtitle">Online Multiplayer Arena</div>
-
     <div class="glass-card">
       <div class="input-group">
         <label>Nickname Player</label>
         <input type="text" id="inputNama" placeholder="ENTER NAME" maxlength="12">
       </div>
-
-      <button class="btn" id="btnCreate">
-        ⚡ Create Room
-      </button>
-
-      <button class="btn btn-quick" id="btnQuick">
-        🚀 Quick Match
-      </button>
-
+      <button class="btn" id="btnCreate">⚡ Create Room</button>
+      <button class="btn btn-quick" id="btnQuick">🚀 Quick Match</button>
       <div class="divider">Available Rooms</div>
-
-      <div class="room-list" id="roomList">
-        <div class="no-room">Loading rooms...</div>
-      </div>
-
+      <div class="room-list" id="roomList"><div class="no-room">Loading rooms...</div></div>
       <div class="divider">Or Join by Code</div>
-
       <div class="input-group">
         <label>Room Code</label>
         <input type="text" id="inputKode" placeholder="ABC123" maxlength="6">
       </div>
-
-      <button class="btn btn-outline" id="btnJoin">
-        🔑 Join Room
-      </button>
+      <button class="btn btn-outline" id="btnJoin">🔑 Join Room</button>
     </div>
   </div>
 
@@ -261,17 +106,11 @@ body{
     <div class="glass-card waiting">
       <h3>Waiting For Opponent...</h3>
       <div class="room-code" id="roomCode">------</div>
-      <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase">
-        Share this code with your friend
-      </div>
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase">Share this code with your friend</div>
       <div style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching...</div>
-
-      <button class="btn btn-outline" id="btnCancel" style="margin-top:35px">
-        ❌ Cancel
-      </button>
+      <button class="btn btn-outline" id="btnCancel" style="margin-top:35px">❌ Cancel</button>
     </div>
   </div>
-
 </div>
 
 <div class="toast" id="toast"><span id="toastText"></span></div>
@@ -296,32 +135,25 @@ function loadRooms(){
     document.getElementById('roomList').innerHTML = `<div class="no-room">Firebase not connected</div>`;
     return;
   }
-
   if(roomsUnsubscribe) roomsUnsubscribe();
-
   const roomsRef = ref(db, 'rooms');
   roomsUnsubscribe = onValue(roomsRef, (snapshot)=>{
     const roomListEl = document.getElementById('roomList');
     roomListEl.innerHTML = '';
-
     if(!snapshot.exists()){
       roomListEl.innerHTML = `<div class="no-room">No rooms available<br>Create one!</div>`;
       return;
     }
-
     const rooms = snapshot.val();
     let hasRoom = false;
-
     Object.keys(rooms).forEach(id=>{
       const room = rooms[id];
       const isFull = room.player2 && room.status!== 'waiting';
       const isWaiting = room.status === 'waiting' &&!room.player2;
-
       if(isWaiting || isFull){
         hasRoom = true;
         const roomItem = document.createElement('div');
         roomItem.className = 'room-item' + (isFull? ' full' : '');
-
         roomItem.innerHTML = `
           <div>
             <div class="room-id">${id}</div>
@@ -331,15 +163,12 @@ function loadRooms(){
             ${isFull? 'FULL' : 'OPEN'}
           </div>
         `;
-
         if(!isFull){
           roomItem.onclick = ()=>quickJoin(id);
         }
-
         roomListEl.appendChild(roomItem);
       }
     });
-
     if(!hasRoom){
       roomListEl.innerHTML = `<div class="no-room">No open rooms<br>Create one!</div>`;
     }
@@ -352,33 +181,27 @@ window.quickJoin = async function(targetRoomId){
     showToast('Enter nickname first!', 'error');
     return;
   }
-
   roomId = targetRoomId;
   const roomRef = ref(db, 'rooms/' + roomId);
   const snapshot = await get(roomRef);
-
   if(!snapshot.exists()){
     showToast('Room deleted!', 'error');
     loadRooms();
     return;
   }
-
   const data = snapshot.val();
   if(data.player2){
     showToast('Room is full!', 'error');
     loadRooms();
     return;
   }
-
   await update(roomRef, {
     player2: {nama: namaPlayer, score: 0, ready: true},
     status: 'ready'
   });
-
   localStorage.setItem('namaPlayer', namaPlayer);
   localStorage.setItem('roomId', roomId);
   localStorage.setItem('playerNum', '2');
-
   showToast('Joined Room!', 'success');
   setTimeout(()=>masukGame(), 1500);
 }
@@ -389,34 +212,28 @@ window.buatRoom = async function(){
     showToast('Enter nickname first!', 'error');
     return;
   }
-
   roomId = Math.random().toString(36).substring(2,8).toUpperCase();
   const roomRef = ref(db, 'rooms/' + roomId);
-
   await set(roomRef, {
     player1: {nama: namaPlayer, score: 0, ready: true},
     player2: null,
     status: 'waiting',
     createdAt: serverTimestamp(),
-    babak: 0,
-    giliran: 1
+    babak: 1,
+    giliran: null // ✅ KOSONGKAN BIAR GAME.HTML ACAK DADU
   });
-
   localStorage.setItem('namaPlayer', namaPlayer);
   localStorage.setItem('roomId', roomId);
   localStorage.setItem('playerNum', '1');
-
   document.getElementById('roomCode').textContent = roomId;
   showScreen('screen-lobby');
   showToast('Room Created!', 'success');
-
   listenRoom();
 }
 
 window.joinRoom = async function(){
   namaPlayer = document.getElementById('inputNama').value.trim();
   roomId = document.getElementById('inputKode').value.trim().toUpperCase();
-
   if(!namaPlayer){
     showToast('Enter nickname first!', 'error');
     return;
@@ -425,31 +242,24 @@ window.joinRoom = async function(){
     showToast('Enter 6 digit room code!', 'error');
     return;
   }
-
   const roomRef = ref(db, 'rooms/' + roomId);
   const snapshot = await get(roomRef);
-
   if(!snapshot.exists()){
     showToast('Room not found!', 'error');
     return;
   }
-
   const data = snapshot.val();
-
   if(data.player2){
     showToast('Room is full!', 'error');
     return;
   }
-
   await update(roomRef, {
     player2: {nama: namaPlayer, score: 0, ready: true},
     status: 'ready'
   });
-
   localStorage.setItem('namaPlayer', namaPlayer);
   localStorage.setItem('roomId', roomId);
   localStorage.setItem('playerNum', '2');
-
   showToast('Joined Room!', 'success');
   setTimeout(()=>masukGame(), 1500);
 }
@@ -460,32 +270,25 @@ window.autoJoin = async function(){
     showToast('Enter nickname first!', 'error');
     return;
   }
-
   showToast('Searching room...', 'success');
-
   const roomsRef = ref(db, 'rooms');
   const snapshot = await get(roomsRef);
-
   if(!snapshot.exists()){
     showToast('No room available', 'error');
     return;
   }
-
   const rooms = snapshot.val();
   let foundRoom = null;
-
   for(let id in rooms){
     if(rooms[id].status === 'waiting' &&!rooms[id].player2){
       foundRoom = id;
       break;
     }
   }
-
   if(!foundRoom){
     showToast('No room found. Create one!', 'error');
     return;
   }
-
   quickJoin(foundRoom);
 }
 
@@ -497,7 +300,6 @@ function listenRoom(){
       batalRoom();
       return;
     }
-
     const data = snapshot.val();
     if(data.status === 'ready' && data.player1 && data.player2){
       setTimeout(()=>masukGame(), 1500);
