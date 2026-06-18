@@ -144,7 +144,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 </div>
 
 <div class="points-popup" id="pointsPopup">+15</div>
-<div class="debug-info" id="debugInfo">Connecting...</div>
+<div class="debug-info" id="debugInfo">Loading...</div>
 
 <script>
 const urlParams = new URLSearchParams(window.location.search);
@@ -178,12 +178,7 @@ const kartu = [
   {kategori:"CITY", jawaban:"BANDUNG", hint:"B _ N _ U _ G"},
   {kategori:"ANIMAL", jawaban:"MACAN", hint:"M _ C _ N"},
   {kategori:"COUNTRY", jawaban:"MALAYSIA", hint:"M _ L _ Y S _"},
-  {kategori:"PLANT", jawaban:"MELATI", hint:"M _ L _ T _"},
-  {kategori:"FRUIT", jawaban:"APEL", hint:"A _ E _"},
-  {kategori:"CITY", jawaban:"SURABAYA", hint:"S _ R _ B _ Y _"},
-  {kategori:"ANIMAL", jawaban:"SINGA", hint:"S _ N _ A"},
-  {kategori:"COUNTRY", jawaban:"SINGAPURA", hint:"S _ N _ A P _ R _"},
-  {kategori:"PLANT", jawaban:"SAWO", hint:"S _ W _"}
+  {kategori:"PLANT", jawaban:"MELATI", hint:"M _ L _ T _"}
 ];
 
 onDisconnect(playerRef).set(null);
@@ -191,15 +186,9 @@ if(playerNum === 1){
   onDisconnect(roomRef).remove();
 }
 
-let timeoutCheck = setTimeout(()=>{
-  document.getElementById('debugInfo').textContent = 'Timeout! Cek internet/Rules Firebase';
-}, 3000);
-
 onValue(roomRef, async (snapshot)=>{
-  clearTimeout(timeoutCheck);
-  
   if(!snapshot.exists()){
-    alert("❌ Room Deleted! Back to lobby");
+    alert("❌ Room Deleted!");
     window.location.href = './index.html';
     return;
   }
@@ -220,8 +209,6 @@ onValue(roomRef, async (snapshot)=>{
   }
 
   updateUI();
-}, (error)=>{
-  document.getElementById('debugInfo').textContent = 'Firebase Error: ' + error.message;
 });
 
 function updateUI(){
@@ -320,25 +307,19 @@ document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   clearInterval(timerInterval);
   timerInterval = null;
 
-  let updateData = {
-    showAnswer: true,
-    status: 'waiting'
-  };
+  let updateData = {showAnswer: true, status: 'waiting'};
 
   if(jawaban === currentCard.jawaban){
     if(giliran==2) updateData['player2/score'] = (roomData.player2.score||0) + 15;
     else updateData['player1/score'] = (roomData.player1.score||0) + 15;
-    
     if(giliran==1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
     else updateData['player2/score'] = (roomData.player2.score||0) + 5;
-    
-    showPointsPopup('+15', giliran==2 ? 2 : 1);
-    showPopup('🎉 CORRECT!', `${giliran==1 ? roomData.player2.nama : roomData.player1.nama} got +15 points!`, 2500);
+    showPointsPopup('+15');
+    showPopup('🎉 CORRECT!', `${giliran==1 ? roomData.player2.nama : roomData.player1.nama} +15 points!`, 2500);
   } else {
     if(giliran==1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
     else updateData['player2/score'] = (roomData.player2.score||0) + 5;
-    
-    showPointsPopup('+5', giliran==1 ? 1 : 2);
+    showPointsPopup('+5');
     showPopup('❌ WRONG!', `Answer: ${currentCard.jawaban}`, 2500);
   }
 
@@ -350,31 +331,24 @@ async function timeUp(){
   if(!roomData) return;
   clearInterval(timerInterval);
   timerInterval = null;
-  let updateData = {
-    showAnswer: true,
-    status: 'waiting'
-  };
+  let updateData = {showAnswer: true, status: 'waiting'};
   if(roomData.giliran==1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
   else updateData['player2/score'] = (roomData.player2.score||0) + 5;
   
   await update(roomRef, updateData);
-  showPointsPopup('+5', roomData.giliran==1 ? 1 : 2);
+  showPointsPopup('+5');
   showPopup('⏰ TIME UP!', `Answer: ${currentCard.jawaban}`, 2500);
 }
   
 document.getElementById('btnSkip').addEventListener('click', async ()=>{
   if(!roomData) return;
-  
   const giliran = roomData.giliran || 1;
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
   if(!isPengambil) return;
   
   clearInterval(timerInterval);
   timerInterval = null;
-  let updateData = {
-    showAnswer: true,
-    status: 'waiting'
-  };
+  let updateData = {showAnswer: true, status: 'waiting'};
   if(giliran==1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
   else updateData['player2/score'] = (roomData.player2.score||0) + 5;
   
@@ -421,7 +395,7 @@ function closePopup(){
   document.getElementById('popup').classList.remove('show');
 }
 
-function showPointsPopup(text, player){
+function showPointsPopup(text){
   const popup = document.getElementById('pointsPopup');
   popup.textContent = text;
   popup.classList.add('show');
@@ -452,9 +426,7 @@ document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
   if(e.key === 'Enter') document.getElementById('btnSubmit').click();
 });
 
-// lucide paling akhir
 try{ lucide.createIcons(); }catch(e){}
-
 </script>
 </body>
 </html>
