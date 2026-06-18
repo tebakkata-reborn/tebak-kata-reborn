@@ -155,7 +155,6 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 <div class="debug-info" id="debugInfo">Loading...</div>
 
 <script>
-lucide.createIcons();
 
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
@@ -547,6 +546,11 @@ window.addEventListener('beforeunload', ()=>{
 document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
   if(e.key === 'Enter') submitJawaban();
 });
+
+// lucide dipanggil sekali di akhir
+if(typeof lucide !== 'undefined'){
+  try{ lucide.createIcons(); }catch(e){}
+}
 </script>
 </body>
 </html>
