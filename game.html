@@ -341,6 +341,18 @@ body::before{
 @keyframes spin{
  100%{transform:rotate(360deg)}
 }
+
+.debug-info{
+  position:fixed;
+  bottom:10px;
+  left:10px;
+  font-size:10px;
+  color:var(--text-dim);
+  background:rgba(0,0,0,0.5);
+  padding:8px;
+  border-radius:8px;
+  font-family:monospace;
+}
 </style>
 </head>
 <body>
@@ -396,6 +408,7 @@ body::before{
 <div class="loading" id="loading">
   <i data-lucide="loader-2"></i>
   <div style="margin-top:20px">Connecting to Arena...</div>
+  <div id="debugText" style="font-size:11px;margin-top:15px;color:#94A3B8"></div>
 </div>
 
 <!-- POPUP MODERN -->
@@ -409,13 +422,26 @@ body::before{
 
 <div class="points-popup" id="pointsPopup">+15</div>
 
+<div class="debug-info" id="debugInfo"></div>
+
 <script>
 lucide.createIcons();
 
+// DEBUG: Log semua data penting
 const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room');
+let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
-const playerNum = localStorage.getItem('playerNum');
+let playerNum = localStorage.getItem('playerNum');
+
+// FORCE UPPERCASE biar gak case-sensitive
+roomId = roomId ? roomId.toUpperCase() : null;
+
+console.log("=== GAME DEBUG ===");
+console.log("RoomID:", roomId);
+console.log("PlayerNum:", playerNum);
+console.log("NamaPlayer:", namaPlayer);
+
+document.getElementById('debugInfo').textContent = `Room:${roomId} | P:${playerNum} | ${namaPlayer}`;
 
 let roomData = null;
 let currentCard = null;
@@ -523,9 +549,16 @@ const kartu = [
   {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
 ];
 
-if(!roomId ||!namaPlayer){
-  showPopup("❌ Error", "Invalid room! Back to lobby", 2000);
-  setTimeout(()=>window.location.href = './index.html', 2000);
+if(!roomId ||!namaPlayer ||!playerNum){
+  document.getElementById('loading').innerHTML = `
+    <div style="color:#EF4444">
+      Data missing!<br>
+      RoomID: ${roomId}<br>
+      Player: ${namaPlayer}<br>
+      Num: ${playerNum}<br>
+      Back to lobby...
+    </div>`;
+  setTimeout(()=>window.location.href = './index.html', 3000);
 }
 
 const roomRef = ref(db, 'rooms/' + roomId);
@@ -537,7 +570,20 @@ if(playerNum === '1'){
   onDisconnect(roomRef).remove();
 }
 
+// TIMEOUT 5 DETIK KALO GAK KONEK
+let loadingTimeout = setTimeout(()=>{
+  document.getElementById('debugText').innerHTML = `
+    Timeout 5s!<br>
+    1. Check Firebase Rules = true<br>
+    2. Room: ${roomId}<br>
+    3. PlayerNum: ${playerNum}<br>
+    Open F12 Console for error
+  `;
+}, 5000);
+
 unsubscribe = onValue(roomRef, (snapshot)=>{
+  clearTimeout(loadingTimeout);
+  
   if(!snapshot.exists()){
     showPopup("❌ Room Deleted", "Room not found! Back to lobby", 2000);
     setTimeout(()=>window.location.href = './index.html', 2000);
@@ -563,8 +609,9 @@ unsubscribe = onValue(roomRef, (snapshot)=>{
 
   updateUI();
 }, (error)=>{
+  clearTimeout(loadingTimeout);
   console.error("Game onValue error:", error);
-  document.getElementById('loading').innerHTML = `<div style="color:#EF4444">Error: ${error.message}<br>Check Firebase Rules!</div>`;
+  document.getElementById('loading').innerHTML = `<div style="color:#EF4444">Firebase Error:<br>${error.message}<br><br>Fix: Set Rules to true</div>`;
 });
 
 function updateUI(){
@@ -676,14 +723,14 @@ window.submitJawaban = async function(){
 
   await update(roomRef, updateData);
   document.getElementById('inputJawab').value = '';
-}
-
-async function timeUp(){
+  }
+  
+  async function timeUp(){
   clearInterval(timerInterval);
   timerInterval = null;
   let updateData = {
-    showAnswer: true,
-    status: 'waiting'
+  showAnswer: true,
+  status: 'waiting'
   };
   if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
   else updateData['player2/score'] = (roomData.player2.score||0) + 5;
@@ -691,17 +738,17 @@ async function timeUp(){
   await update(roomRef, updateData);
   showPointsPopup('+5', roomData.giliran===1? 1 : 2);
   showPopup('⏰ TIME UP!', `Answer: ${currentCard.jawaban}`, 2500);
-}
-
-window.lewatiBabak = async function(){
+  }
+  
+  window.lewatiBabak = async function(){
   const isPengambil = (roomData.giliran===1 && playerNum==='1') || (roomData.giliran===2 && playerNum==='2');
   if(!isPengambil) return;
-
+  
   clearInterval(timerInterval);
   timerInterval = null;
   let updateData = {
-    showAnswer: true,
-    status: 'waiting'
+  showAnswer: true,
+  status: 'waiting'
   };
   if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
   else updateData['player2/score'] = (roomData.player2.score||0) + 5;
