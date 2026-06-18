@@ -8,7 +8,7 @@
 <script src="https://unpkg.com/lucide@0.300.0/dist/umd/lucide.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, get, child, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkKWCypJ923Lbsfc8",
@@ -26,7 +26,6 @@ window.db = db;
 window.ref = ref;
 window.set = set;
 window.get = get;
-window.child = child;
 window.onValue = onValue;
 window.update = update;
 window.remove = remove;
@@ -53,48 +52,15 @@ body{
   align-items:center;
   justify-content:center;
   padding:20px;
-  overflow-x:hidden;
 }
 
-body::before{
-  content:'';
-  position:fixed;
-  top:-50%;
-  left:-50%;
-  width:200%;
-  height:200%;
-  background:radial-gradient(circle at 20% 30%, rgba(139,92,246,0.3) 0%, transparent 50%),
-             radial-gradient(circle at 80% 70%, rgba(236,72,153,0.3) 0%, transparent 50%);
-  animation:rotateBg 20s linear infinite;
-  z-index:-1;
-}
-
-@keyframes rotateBg{
- 0%{transform:rotate(0deg)}
- 100%{transform:rotate(360deg)}
-}
-
-.container{width:100%;max-width:480px;z-index:1}
+.container{width:100%;max-width:480px}
 
 .logo{
   font-family:'Orbitron';font-size:38px;font-weight:900;
   background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink),var(--neon-cyan));
-  background-size:200% 200%;
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   text-align:center;margin-bottom:8px;
-  animation:glowPulse 3s ease-in-out infinite, gradientShift 5s ease infinite;
-  text-shadow:0 0 40px rgba(139,92,246,0.6);
-  letter-spacing:2px;
-}
-
-@keyframes glowPulse{
- 0%,100%{filter:drop-shadow(0 0 20px rgba(139,92,246,0.8))}
- 50%{filter:drop-shadow(0 0 40px rgba(236,72,153,0.9))}
-}
-
-@keyframes gradientShift{
- 0%,100%{background-position:0% 50%}
- 50%{background-position:100% 50%}
 }
 
 .subtitle{
@@ -109,7 +75,6 @@ body::before{
   border-radius:28px;
   padding:30px;
   box-shadow:0 0 50px rgba(139,92,246,0.2);
-  margin-bottom:20px;
 }
 
 .input-group{margin-bottom:20px}
@@ -123,32 +88,22 @@ body::before{
   border:2px solid rgba(139,92,246,0.3);
   background:rgba(5,8,22,0.6);
   color:var(--text);font-size:16px;outline:none;
-  text-transform:uppercase;font-weight:500;
-  transition:all 0.3s;
-  font-family:'Orbitron';
-  letter-spacing:1px;
-}
-
-.input-group input:focus{
-  border-color:var(--neon-purple);
-  box-shadow:0 0 20px rgba(139,92,246,0.5);
+  text-transform:uppercase;font-family:'Orbitron';
 }
 
 .btn{
   width:100%;padding:18px;border:none;border-radius:16px;
   background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));
   color:white;font-weight:700;font-size:16px;cursor:pointer;
-  transition:all 0.3s;text-transform:uppercase;letter-spacing:1px;
-  box-shadow:0 8px 30px rgba(139,92,246,0.5);
   display:flex;align-items:center;justify-content:center;gap:10px;
-  font-family:'Orbitron';
+  font-family:'Orbitron';margin-bottom:10px;
+  transition:all 0.3s;
 }
 
 .btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(139,92,246,0.7)}
 .btn-outline{
   background:transparent;
   border:2px solid var(--neon-purple);
-  box-shadow:0 0 20px rgba(139,92,246,0.3);
 }
 
 .btn-quick{
@@ -172,7 +127,6 @@ body::before{
   background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   text-align:center;margin:25px 0;
-  text-shadow:0 0 30px rgba(6,182,212,0.6);
 }
 
 .waiting{text-align:center;padding:40px}
@@ -180,37 +134,11 @@ body::before{
   font-family:'Orbitron';font-size:20px;margin-bottom:15px;color:var(--neon-cyan);
 }
 
-/* ROOM LIST BARU */
-.room-list-header{
-  display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;
-}
-.room-list-title{
-  font-family:'Orbitron';font-size:14px;color:var(--neon-cyan);
-  text-transform:uppercase;letter-spacing:2px;
-}
-.btn-refresh{
-  background:rgba(6,182,212,0.2);
-  border:1px solid var(--neon-cyan);
-  padding:8px 12px;
-  border-radius:10px;
-  font-size:12px;
-  cursor:pointer;
-  transition:all 0.3s;
-}
-.btn-refresh:hover{
-  background:rgba(6,182,212,0.4);
-  box-shadow:0 0 15px rgba(6,182,212,0.5);
-}
-
 .room-list{
   max-height:280px;
   overflow-y:auto;
   padding-right:5px;
 }
-
-.room-list::-webkit-scrollbar{width:4px}
-.room-list::-webkit-scrollbar-track{background:rgba(139,92,246,0.1)}
-.room-list::-webkit-scrollbar-thumb{background:var(--neon-purple);border-radius:4px}
 
 .room-item{
   background:rgba(139,92,246,0.1);
@@ -222,13 +150,6 @@ body::before{
   justify-content:space-between;
   align-items:center;
   cursor:pointer;
-  transition:all 0.3s;
-}
-
-.room-item:hover{
-  background:rgba(139,92,246,0.2);
-  border-color:var(--neon-purple);
-  transform:translateX(5px);
 }
 
 .room-item.full{
@@ -236,21 +157,9 @@ body::before{
   cursor:not-allowed;
 }
 
-.room-item.full:hover{
-  transform:none;
-  background:rgba(239,68,68,0.1);
-  border-color:#EF4444;
-}
-
-.room-info{
-  flex:1;
-}
 .room-id{
   font-family:'Orbitron';font-size:16px;font-weight:700;
-  letter-spacing:2px;color:var(--text);
-}
-.room-host{
-  font-size:12px;color:var(--text-dim);margin-top:4px;
+  letter-spacing:2px;
 }
 
 .room-status{
@@ -259,7 +168,6 @@ body::before{
   font-size:10px;
   font-weight:700;
   text-transform:uppercase;
-  letter-spacing:1px;
   font-family:'Orbitron';
 }
 
@@ -267,7 +175,6 @@ body::before{
   background:rgba(16,185,129,0.2);
   color:var(--neon-green);
   border:1px solid var(--neon-green);
-  animation:pulse 2s infinite;
 }
 
 .status-full{
@@ -276,37 +183,28 @@ body::before{
   border:1px solid #EF4444;
 }
 
-@keyframes pulse{
- 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)}
- 50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}
-}
-
 .no-room{
   text-align:center;padding:40px 20px;color:var(--text-dim);
   font-size:13px;
 }
-.no-room i{font-size:40px;margin-bottom:10px;color:var(--neon-purple);opacity:0.5}
 
 .toast{
   position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);
   background:linear-gradient(135deg,var(--neon-green),#059669);
   color:white;padding:16px 24px;border-radius:14px;
-  font-size:14px;font-weight:600;opacity:0;transition:all 0.4s cubic-bezier(0.68,-0.55,0.265,1.55);
+  font-size:14px;font-weight:600;opacity:0;transition:all 0.4s;
   z-index:2000;display:flex;align-items:center;gap:10px;
-  box-shadow:0 10px 40px rgba(16,185,129,0.5);
-  border:1px solid rgba(255,255,255,0.2);
-  font-family:'Orbitron';letter-spacing:1px;
+  font-family:'Orbitron';
 }
 
 .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
-.toast.error{background:linear-gradient(135deg,#EF4444,#DC2626);box-shadow:0 10px 40px rgba(239,68,68,0.5)}
+.toast.error{background:linear-gradient(135deg,#EF4444,#DC2626)}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-  <!-- MENU AWAL -->
   <div id="screen-menu">
     <div class="logo">TEBAK KATA</div>
     <div class="subtitle">Online Multiplayer Arena</div>
@@ -317,72 +215,68 @@ body::before{
         <input type="text" id="inputNama" placeholder="ENTER NAME" maxlength="12">
       </div>
 
-      <button class="btn" onclick="buatRoom()">
-        <i data-lucide="zap"></i> Create Room
+      <button class="btn" id="btnCreate">
+        ⚡ Create Room
       </button>
 
-      <button class="btn btn-quick" style="margin-top:12px" onclick="autoJoin()">
-        <i data-lucide="rocket"></i> Quick Match
+      <button class="btn btn-quick" id="btnQuick">
+        🚀 Quick Match
       </button>
 
       <div class="divider">Available Rooms</div>
 
-      <div class="room-list-header">
-        <div class="room-list-title">Live Rooms</div>
-        <button class="btn-refresh" onclick="loadRooms()">
-          <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh
-        </button>
-      </div>
-
       <div class="room-list" id="roomList">
-        <div class="no-room">
-          <i data-lucide="loader-2"></i>
-          <div>Loading rooms...</div>
-        </div>
+        <div class="no-room">Loading rooms...</div>
       </div>
 
       <div class="divider">Or Join by Code</div>
 
       <div class="input-group">
         <label>Room Code</label>
-        <input type="text" id="inputKode" placeholder="ABC123" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+        <input type="text" id="inputKode" placeholder="ABC123" maxlength="6">
       </div>
 
-      <button class="btn btn-outline" onclick="joinRoom()">
-        <i data-lucide="log-in"></i> Join Room
+      <button class="btn btn-outline" id="btnJoin">
+        🔑 Join Room
       </button>
     </div>
   </div>
 
-  <!-- LOBBY WAITING -->
   <div id="screen-lobby" style="display:none">
     <div class="glass-card waiting">
       <h3>Waiting For Opponent...</h3>
       <div class="room-code" id="roomCode">------</div>
-      <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase;letter-spacing:2px">
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase">
         Share this code with your friend
       </div>
-      <div style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching<span class="loading-dots"></span></div>
+      <div style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching...</div>
 
-      <button class="btn btn-outline" onclick="batalRoom()" style="margin-top:35px">
-        <i data-lucide="x-circle"></i> Cancel
+      <button class="btn btn-outline" id="btnCancel" style="margin-top:35px">
+        ❌ Cancel
       </button>
     </div>
   </div>
 
 </div>
 
-<div class="toast" id="toast"><i data-lucide="check-circle"></i><span id="toastText"></span></div>
+<div class="toast" id="toast"><span id="toastText"></span></div>
 
 <script>
-lucide.createIcons();
-
 let namaPlayer = '';
 let roomId = '';
 let unsubscribe = null;
 let roomsUnsubscribe = null;
 
-// Load rooms real-time
+// Pake addEventListener biar gak kehapus onclick
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('btnCreate').addEventListener('click', buatRoom);
+  document.getElementById('btnQuick').addEventListener('click', autoJoin);
+  document.getElementById('btnJoin').addEventListener('click', joinRoom);
+  document.getElementById('btnCancel').addEventListener('click', batalRoom);
+  lucide.createIcons();
+  loadRooms();
+});
+
 function loadRooms(){
   if(roomsUnsubscribe) roomsUnsubscribe();
 
@@ -392,13 +286,7 @@ function loadRooms(){
     roomListEl.innerHTML = '';
 
     if(!snapshot.exists()){
-      roomListEl.innerHTML = `
-        <div class="no-room">
-          <i data-lucide="wifi-off"></i>
-          <div>No rooms available<br>Create one to start!</div>
-        </div>
-      `;
-      lucide.createIcons();
+      roomListEl.innerHTML = `<div class="no-room">No rooms available<br>Create one!</div>`;
       return;
     }
 
@@ -407,21 +295,21 @@ function loadRooms(){
 
     Object.keys(rooms).forEach(id=>{
       const room = rooms[id];
-      const isFull = room.player2 && room.status!== 'waiting';
-      const isWaiting = room.status === 'waiting' &&!room.player2;
+      const isFull = room.player2 && room.status !== 'waiting';
+      const isWaiting = room.status === 'waiting' && !room.player2;
 
       if(isWaiting || isFull){
         hasRoom = true;
         const roomItem = document.createElement('div');
-        roomItem.className = 'room-item' + (isFull? ' full' : '');
+        roomItem.className = 'room-item' + (isFull ? ' full' : '');
 
         roomItem.innerHTML = `
-          <div class="room-info">
+          <div>
             <div class="room-id">${id}</div>
-            <div class="room-host">Host: ${room.player1.nama}</div>
+            <div style="font-size:12px;color:var(--text-dim)">Host: ${room.player1.nama}</div>
           </div>
-          <div class="room-status ${isFull? 'status-full' : 'status-available'}">
-            ${isFull? 'FULL' : 'OPEN'}
+          <div class="room-status ${isFull ? 'status-full' : 'status-available'}">
+            ${isFull ? 'FULL' : 'OPEN'}
           </div>
         `;
 
@@ -434,18 +322,10 @@ function loadRooms(){
     });
 
     if(!hasRoom){
-      roomListEl.innerHTML = `
-        <div class="no-room">
-          <i data-lucide="search-x"></i>
-          <div>No open rooms<br>Click Create Room!</div>
-        </div>
-      `;
-      lucide.createIcons();
+      roomListEl.innerHTML = `<div class="no-room">No open rooms<br>Create one!</div>`;
     }
   });
 }
-
-loadRooms();
 
 window.quickJoin = async function(targetRoomId){
   namaPlayer = document.getElementById('inputNama').value.trim();
@@ -481,7 +361,7 @@ window.quickJoin = async function(targetRoomId){
   localStorage.setItem('playerNum', '2');
 
   showToast('Joined Room!', 'success');
-  setTimeout(()=>masukGame(), 1000);
+  setTimeout(()=>masukGame(), 1500);
 }
 
 window.buatRoom = async function(){
@@ -552,7 +432,7 @@ window.joinRoom = async function(){
   localStorage.setItem('playerNum', '2');
 
   showToast('Joined Room!', 'success');
-  setTimeout(()=>masukGame(), 1000);
+  setTimeout(()=>masukGame(), 1500);
 }
 
 window.autoJoin = async function(){
@@ -576,7 +456,7 @@ window.autoJoin = async function(){
   let foundRoom = null;
 
   for(let id in rooms){
-    if(rooms[id].status === 'waiting' &&!rooms[id].player2){
+    if(rooms[id].status === 'waiting' && !rooms[id].player2){
       foundRoom = id;
       break;
     }
@@ -601,7 +481,7 @@ function listenRoom(){
 
     const data = snapshot.val();
     if(data.status === 'ready' && data.player1 && data.player2){
-      setTimeout(()=>masukGame(), 1000);
+      setTimeout(()=>masukGame(), 1500);
     }
   });
 }
@@ -609,7 +489,8 @@ function listenRoom(){
 function masukGame(){
   if(unsubscribe) unsubscribe();
   if(roomsUnsubscribe) roomsUnsubscribe();
-  window.location.href = `game.html?room=${roomId}`;
+  // FIX: pake ./ biar path nya bener
+  window.location.href = `./game.html?room=${roomId}`;
 }
 
 window.batalRoom = async function(){
@@ -635,13 +516,6 @@ function showToast(msg, type='success'){
   toast.className = 'toast' + (type==='error'?' error':'') + ' show';
   setTimeout(()=>toast.classList.remove('show'), 3000);
 }
-
-document.getElementById('inputKode').addEventListener('keypress', e=>{
-  if(e.key==='Enter') joinRoom();
-});
-document.getElementById('inputNama').addEventListener('keypress', e=>{
-  if(e.key==='Enter') document.getElementById('inputKode').focus();
-});
 </script>
 </body>
 </html>
