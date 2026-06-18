@@ -20,24 +20,17 @@ const firebaseConfig = {
   appId: "1:341111815240:web:7db8309e4d5d2b433fac7d"
 };
 
-let db;
-try {
-  const app = initializeApp(firebaseConfig);
-  db = getDatabase(app); // HAPUS firebaseConfig.databaseURL, cukup app aja
-  window.db = db;
-  window.ref = ref;
-  window.set = set;
-  window.get = get;
-  window.onValue = onValue;
-  window.update = update;
-  window.remove = remove;
-  window.serverTimestamp = serverTimestamp;
-  window.onDisconnect = onDisconnect;
-  
-  alert("Firebase OK!"); // DEBUG: kalo ini gak muncul = import gagal
-} catch(e) {
-  alert("Firebase ERROR: " + e.message); // DEBUG: ini pasti muncul kalo error
-}
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app, firebaseConfig.databaseURL);
+window.db = db;
+window.ref = ref;
+window.set = set;
+window.get = get;
+window.onValue = onValue;
+window.update = update;
+window.remove = remove;
+window.serverTimestamp = serverTimestamp;
+window.onDisconnect = onDisconnect;
 </script>
 <style>
 :root{
@@ -122,22 +115,22 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
   </div>
 
   <div id="areaPengambil">
-    <button class="btn" id="btnDraw" onclick="ambilKartu()">
+    <button class="btn" id="btnDraw">
       <i data-lucide="shuffle"></i> Draw Card
     </button>
   </div>
 
   <div id="areaPenebak" style="display:none">
     <input type="text" class="input-jawab" id="inputJawab" placeholder="TYPE ANSWER...">
-    <button class="btn btn-success" onclick="submitJawaban()">
+    <button class="btn btn-success" id="btnSubmit">
       <i data-lucide="send"></i> Submit Answer
     </button>
-    <button class="btn btn-skip" onclick="lewatiBabak()">
+    <button class="btn btn-skip" id="btnSkip">
       <i data-lucide="skip-forward"></i> Skip Round
     </button>
   </div>
 
-  <button class="btn btn-leave" onclick="keluarRoom()">
+  <button class="btn btn-leave" id="btnLeave">
     <i data-lucide="log-out"></i> Leave Room
   </button>
 </div>
@@ -147,15 +140,13 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
   <div class="popup-icon" id="popupIcon">🎉</div>
   <div class="popup-title" id="popupTitle">Correct!</div>
   <div class="popup-text" id="popupText">+15 Points for Guesser</div>
-  <button class="btn" onclick="nextBabak()">Next Round</button>
+  <button class="btn" id="btnNext">Next Round</button>
 </div>
 
 <div class="points-popup" id="pointsPopup">+15</div>
-
-<div class="debug-info" id="debugInfo">Loading...</div>
+<div class="debug-info" id="debugInfo">Connecting...</div>
 
 <script>
-
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
@@ -164,12 +155,18 @@ let playerNum = parseInt(localStorage.getItem('playerNum')) || 0;
 roomId = roomId ? roomId.toUpperCase().trim() : null;
 document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + (roomId || '----');
 
+if(!roomId || !namaPlayer || !playerNum || playerNum < 1 || playerNum > 2){
+  alert("❌ Data Hilang! Masuk lobby dulu");
+  window.location.href = './index.html';
+}
+
+const roomRef = ref(db, 'rooms/' + roomId);
+const playerRef = ref(db, 'rooms/' + roomId + '/player' + playerNum);
+
 let roomData = null;
 let currentCard = null;
 let timer = 120;
 let timerInterval = null;
-let unsubscribe = null;
-let playerRef = null;
 
 const kartu = [
   {kategori:"FRUIT", jawaban:"JERUK", hint:"J _ R _ K"},
@@ -186,108 +183,20 @@ const kartu = [
   {kategori:"CITY", jawaban:"SURABAYA", hint:"S _ R _ B _ Y _"},
   {kategori:"ANIMAL", jawaban:"SINGA", hint:"S _ N _ A"},
   {kategori:"COUNTRY", jawaban:"SINGAPURA", hint:"S _ N _ A P _ R _"},
-  {kategori:"PLANT", jawaban:"SAWO", hint:"S _ W _"},
-  {kategori:"FRUIT", jawaban:"ANGGUR", hint:"A _ G _ U _"},
-  {kategori:"CITY", jawaban:"MEDAN", hint:"M _ D _ N"},
-  {kategori:"ANIMAL", jawaban:"KELINCI", hint:"K _ L _ N _ I"},
-  {kategori:"COUNTRY", jawaban:"KOREA", hint:"K _ R _ A"},
-  {kategori:"PLANT", jawaban:"KELAPA", hint:"K _ L _ P _"},
-  {kategori:"FRUIT", jawaban:"PISANG", hint:"P _ S _ N _"},
-  {kategori:"CITY", jawaban:"YOGYAKARTA", hint:"Y _ G Y _ K _ R T _"},
-  {kategori:"ANIMAL", jawaban:"GAJAH", hint:"G _ J _ H"},
-  {kategori:"COUNTRY", jawaban:"THAILAND", hint:"T _ A _ L _ N _"},
-  {kategori:"PLANT", jawaban:"ANGGREK", hint:"A _ G _ R _ K"},
-  {kategori:"FRUIT", jawaban:"SEMANGKA", hint:"S _ M _ N _ K _"},
-  {kategori:"CITY", jawaban:"BALIKPAPAN", hint:"B _ L _ K P _ P _ N"},
-  {kategori:"ANIMAL", jawaban:"HARIMAU", hint:"H _ R _ M _ U"},
-  {kategori:"COUNTRY", jawaban:"AUSTRALIA", hint:"A _ S T R _ L _"},
-  {kategori:"PLANT", jawaban:"KAMBOJA", hint:"K _ M B _ J _"},
-  {kategori:"FRUIT", jawaban:"NANAS", hint:"N _ N _ S"},
-  {kategori:"CITY", jawaban:"MAKASSAR", hint:"M _ K _ S _ R"},
-  {kategori:"ANIMAL", jawaban:"BUAYA", hint:"B _ A _ A"},
-  {kategori:"COUNTRY", jawaban:"INDIA", hint:"I _ D _ A"},
-  {kategori:"PLANT", jawaban:"MAWAR", hint:"M _ W _ R"},
-  {kategori:"FRUIT", jawaban:"SALAK", hint:"S _ L _ K"},
-  {kategori:"CITY", jawaban:"PALEMBANG", hint:"P _ L _ M B _ N _"},
-  {kategori:"ANIMAL", jawaban:"MONKEY", hint:"M _ N _ E Y"},
-  {kategori:"COUNTRY", jawaban:"CHINA", hint:"C _ I _ A"},
-  {kategori:"PLANT", jawaban:"BUNGA", hint:"B _ N _ A"},
-  {kategori:"FRUIT", jawaban:"DURIAN", hint:"D _ R _ A _"},
-  {kategori:"CITY", jawaban:"SEMARANG", hint:"S _ M _ R _ N _"},
-  {kategori:"ANIMAL", jawaban:"KUCING", hint:"K _ C _ N _"},
-  {kategori:"COUNTRY", jawaban:"AMERICA", hint:"A _ E R _ C _"},
-  {kategori:"PLANT", jawaban:"TEBU", hint:"T _ B _"},
-  {kategori:"FRUIT", jawaban:"RAMBUTAN", hint:"R _ M B _ T _ N"},
-  {kategori:"CITY", jawaban:"DENPASAR", hint:"D _ N P _ S _ R"},
-  {kategori:"ANIMAL", jawaban:"ULAR", hint:"U _ A _"},
-  {kategori:"COUNTRY", jawaban:"ENGLAND", hint:"E _ G L _ N _"},
-  {kategori:"PLANT", jawaban:"PADI", hint:"P _ D _"},
-  {kategori:"FRUIT", jawaban:"MELON", hint:"M _ L _ N"},
-  {kategori:"CITY", jawaban:"BATAM", hint:"B _ T _ M"},
-  {kategori:"ANIMAL", jawaban:"IKAN", hint:"I _ A _"},
-  {kategori:"COUNTRY", jawaban:"JAPAN", hint:"J _ P _ N"},
-  {kategori:"PLANT", jawaban:"SAWI", hint:"S _ W _"},
-  {kategori:"FRUIT", jawaban:"LECI", hint:"L _ C _"},
-  {kategori:"CITY", jawaban:"PADANG", hint:"P _ D _ N _"},
-  {kategori:"ANIMAL", jawaban:"KAMBING", hint:"K _ M B _ N _"},
-  {kategori:"COUNTRY", jawaban:"GERMANY", hint:"G _ R M _ N _"},
-  {kategori:"PLANT", jawaban:"KANGKUNG", hint:"K _ N _ U _ G"},
-  {kategori:"FRUIT", jawaban:"BELIMBING", hint:"B _ L _ M B _ N _"},
-  {kategori:"CITY", jawaban:"BANJARMASIN", hint:"B _ N J _ R M _ S _ N"},
-  {kategori:"ANIMAL", jawaban:"SAPI", hint:"S _ P _"},
-  {kategori:"COUNTRY", jawaban:"ITALY", hint:"I _ A _ Y"},
-  {kategori:"PLANT", jawaban:"BAYAM", hint:"B _ Y _ M"},
-  {kategori:"FRUIT", jawaban:"KENANGKA", hint:"K _ N _ N _ K _"},
-  {kategori:"CITY", jawaban:"MANADO", hint:"M _ N _ D _"},
-  {kategori:"ANIMAL", jawaban:"KELELAWAR", hint:"K _ L _ L _ W _ R"},
-  {kategori:"COUNTRY", jawaban:"FRANCE", hint:"F _ A _ C _"},
-  {kategori:"PLANT", jawaban:"TANAMAN", hint:"T _ N _ M _ N"},
-  {kategori:"FRUIT", jawaban:"SALAK", hint:"S _ L _ K"},
-  {kategori:"CITY", jawaban:"GORONTALO", hint:"G _ R _ N T _ L _"},
-  {kategori:"ANIMAL", jawaban:"BERUANG", hint:"B _ R _ A _ G"},
-  {kategori:"COUNTRY", jawaban:"BRAZIL", hint:"B _ A Z _ L"},
-  {kategori:"PLANT", jawaban:"KELOR", hint:"K _ L _ R"},
-  {kategori:"FRUIT", jawaban:"DUKU", hint:"D _ K _"},
-  {kategori:"CITY", jawaban:"TASIKMALAYA", hint:"T _ S _ K M _ L _ Y _"},
-  {kategori:"ANIMAL", jawaban:"KUDA", hint:"K _ D _"},
-  {kategori:"COUNTRY", jawaban:"RUSSIA", hint:"R _ S _ A"},
-  {kategori:"PLANT", jawaban:"LIDAH", hint:"L _ D _ H"},
-  {kategori:"FRUIT", jawaban:"MANGIS", hint:"M _ N _ G _ S"},
-  {kategori:"CITY", jawaban:"PEKANBARU", hint:"P _ K _ N B _ R _"},
-  {kategori:"ANIMAL", jawaban:"SERIGALA", hint:"S _ R _ G _ L _"},
-  {kategori:"COUNTRY", jawaban:"SPAIN", hint:"S _ A _ N"},
-  {kategori:"PLANT", jawaban:"BAMBU", hint:"B _ M B _"},
-  {kategori:"FRUIT", jawaban:"MANGKIS", hint:"M _ N _ K _ S"},
-  {kategori:"CITY", jawaban:"SORONG", hint:"S _ R _ N _"},
-  {kategori:"ANIMAL", jawaban:"BURUNG", hint:"B _ R _ N _"},
-  {kategori:"COUNTRY", jawaban:"CANADA", hint:"C _ N _ D _"},
-  {kategori:"PLANT", jawaban:"PANDAN", hint:"P _ N _ A _"},
-  {kategori:"FRUIT", jawaban:"KWENI", hint:"K _ E _ I"},
-  {kategori:"CITY", jawaban:"TANGERANG", hint:"T _ N _ E R _ N _"},
-  {kategori:"ANIMAL", jawaban:"TUPAI", hint:"T _ P _ I"},
-  {kategori:"COUNTRY", jawaban:"EGYPT", hint:"E _ Y _ T"},
-  {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
+  {kategori:"PLANT", jawaban:"SAWO", hint:"S _ W _"}
 ];
-
-if(!roomId || !namaPlayer || !playerNum || playerNum < 1 || playerNum > 2){
-  alert("❌ Data Hilang! Masuk lobby dulu. PlayerNum: " + playerNum);
-  window.location.href = './index.html';
-}
-
-const roomRef = ref(db, 'rooms/' + roomId);
-playerRef = ref(db, 'rooms/' + roomId + '/player' + playerNum);
-
-alert("RoomId: " + roomId + " | PlayerNum: " + playerNum); // DEBUG 1
 
 onDisconnect(playerRef).set(null);
 if(playerNum === 1){
   onDisconnect(roomRef).remove();
 }
 
-alert("Mau listen Firebase..."); // DEBUG 2
+let timeoutCheck = setTimeout(()=>{
+  document.getElementById('debugInfo').textContent = 'Timeout! Cek internet/Rules Firebase';
+}, 3000);
 
-unsubscribe = onValue(roomRef, async (snapshot)=>{
-  alert("Firebase ngerespon! Ada data: " + snapshot.exists()); // DEBUG 3
+onValue(roomRef, async (snapshot)=>{
+  clearTimeout(timeoutCheck);
   
   if(!snapshot.exists()){
     alert("❌ Room Deleted! Back to lobby");
@@ -298,9 +207,9 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
   roomData = snapshot.val();
   
   document.getElementById('debugInfo').textContent = 
-    `Room:${roomId} | P:${playerNum} | Giliran:${roomData.giliran} | P1:${!!roomData.player1} | P2:${!!roomData.player2}`;
+    `Room:${roomId} | P:${playerNum} | Giliran:${roomData.giliran || '-'} | P1:${!!roomData.player1} | P2:${!!roomData.player2}`;
   
-  if(roomData.player1 && roomData.player2 && (roomData.giliran === undefined || roomData.giliran === null || roomData.giliran === 0)){
+  if(roomData.player1 && roomData.player2 && !roomData.giliran){
     const acak = Math.floor(Math.random() * 2) + 1;
     await update(roomRef, { 
       giliran: acak,
@@ -312,7 +221,7 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
 
   updateUI();
 }, (error)=>{
-  alert("Firebase ERROR onValue: " + error.message); // DEBUG 4
+  document.getElementById('debugInfo').textContent = 'Firebase Error: ' + error.message;
 });
 
 function updateUI(){
@@ -334,8 +243,6 @@ function updateUI(){
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
   document.getElementById('areaPengambil').style.display = isPengambil ? 'block' : 'none';
   document.getElementById('areaPenebak').style.display = !isPengambil ? 'block' : 'none';
-
-  console.log(`UI Update | Giliran:${giliran} | PlayerNum:${playerNum} | IsPengambil:${isPengambil}`);
 
   if(roomData.currentCard){
     currentCard = roomData.currentCard;
@@ -366,8 +273,7 @@ function updateUI(){
   }
 }
 
-window.ambilKartu = async function(){
-  console.log("ambilKartu clicked");
+document.getElementById('btnDraw').addEventListener('click', async ()=>{
   if(!roomData || !roomData.player1 || !roomData.player2) {
     alert('Waiting for 2nd player...');
     return;
@@ -377,7 +283,7 @@ window.ambilKartu = async function(){
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
   
   if(!isPengambil) {
-    alert('Not your turn! Giliran:' + giliran + ' Kamu:P' + playerNum);
+    alert('Not your turn!');
     return;
   }
 
@@ -393,7 +299,7 @@ window.ambilKartu = async function(){
 
   document.getElementById('btnDraw').disabled = true;
   showPopup('🔔 DRAW!', `${giliran==1 ? roomData.player2.nama : roomData.player1.nama} is guessing...`, 2000);
-}
+});
 
 function updateTimer(){
   const min = String(Math.floor(timer/60)).padStart(2,'0');
@@ -403,7 +309,7 @@ function updateTimer(){
   timerEl.classList.toggle('warning', timer<=10);
 }
 
-window.submitJawaban = async function(){
+document.getElementById('btnSubmit').addEventListener('click', async ()=>{
   if(!roomData) return;
   
   const giliran = roomData.giliran || 1;
@@ -438,7 +344,7 @@ window.submitJawaban = async function(){
 
   await update(roomRef, updateData);
   document.getElementById('inputJawab').value = '';
-}
+});
   
 async function timeUp(){
   if(!roomData) return;
@@ -456,7 +362,7 @@ async function timeUp(){
   showPopup('⏰ TIME UP!', `Answer: ${currentCard.jawaban}`, 2500);
 }
   
-window.lewatiBabak = async function(){
+document.getElementById('btnSkip').addEventListener('click', async ()=>{
   if(!roomData) return;
   
   const giliran = roomData.giliran || 1;
@@ -474,9 +380,9 @@ window.lewatiBabak = async function(){
   
   await update(roomRef, updateData);
   showPopup('⏭️ SKIPPED!', `Answer: ${currentCard.jawaban}`, 2500);
-}
+});
   
-window.nextBabak = async function(){
+document.getElementById('btnNext').addEventListener('click', async ()=>{
   closePopup();
   const babakBaru = (roomData.babak || 1) + 1;
   const giliranBaru = roomData.giliran == 1 ? 2 : 1;
@@ -499,7 +405,7 @@ window.nextBabak = async function(){
   timer = 120;
   if(timerInterval) clearInterval(timerInterval);
   timerInterval = null;
-}
+});
   
 function showPopup(icon, title, text, duration=3000){
   document.getElementById('popupIcon').textContent = icon;
@@ -522,7 +428,7 @@ function showPointsPopup(text, player){
   setTimeout(()=>popup.classList.remove('show'), 1000);
 }
 
-window.keluarRoom = async function(){
+document.getElementById('btnLeave').addEventListener('click', async ()=>{
   if(confirm('Leave room?')){
     if(playerNum == 1){
       await remove(roomRef);
@@ -532,7 +438,7 @@ window.keluarRoom = async function(){
     localStorage.clear();
     window.location.href = './index.html';
   }
-}
+});
 
 window.addEventListener('beforeunload', ()=>{
   if(playerNum == 1){
@@ -542,15 +448,13 @@ window.addEventListener('beforeunload', ()=>{
   }
 });
 
-// Enter to submit
 document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
-  if(e.key === 'Enter') submitJawaban();
+  if(e.key === 'Enter') document.getElementById('btnSubmit').click();
 });
 
-// lucide dipanggil sekali di akhir
-if(typeof lucide !== 'undefined'){
-  try{ lucide.createIcons(); }catch(e){}
-}
+// lucide paling akhir
+try{ lucide.createIcons(); }catch(e){}
+
 </script>
 </body>
 </html>
