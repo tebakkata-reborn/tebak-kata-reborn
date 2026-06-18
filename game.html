@@ -98,7 +98,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
     <div class="room-code" id="roomCodeDisplay">ROOM: ----</div>
   </div>
 
-  <div class="babak-info">Round <span id="babakNow">1</span> / 10</div>
+  <div class="babak-info" id="babakInfo">Round 1 / 10</div>
   
   <div class="score-board">
     <div class="score-card" id="scoreCard1">
@@ -155,13 +155,11 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 <script>
 lucide.createIcons();
 
-// FORCE NUMBER biar tombol jalan
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
-let playerNum = Number(localStorage.getItem('playerNum'));
+let playerNum = Number(localStorage.getItem('playerNum')) || 0;
 
-// LANGSUNG SET ROOM HEADER
 roomId = roomId ? roomId.toUpperCase() : null;
 document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + (roomId || '----');
 document.getElementById('debugInfo').textContent = `Room:${roomId} | P:${playerNum} | ${namaPlayer}`;
@@ -253,9 +251,9 @@ const kartu = [
   {kategori:"FRUIT", jawaban:"DUKU", hint:"D _ K _"},
   {kategori:"CITY", jawaban:"TASIKMALAYA", hint:"T _ S _ K M _ L _ Y _"},
   {kategori:"ANIMAL", jawaban:"KUDA", hint:"K _ D _"},
-  {kategori:"COUNTRY", jawaban:"RUSSIA", hint:"R _ S _"},
+  {kategori:"COUNTRY", jawaban:"RUSSIA", hint:"R _ S _ A"},
   {kategori:"PLANT", jawaban:"LIDAH", hint:"L _ D _ H"},
-  {kategori:"FRUIT", jawaban:"MANGIS", hint:"M _ N _ I S"},
+  {kategori:"FRUIT", jawaban:"MANGIS", hint:"M _ N _ G _ S"},
   {kategori:"CITY", jawaban:"PEKANBARU", hint:"P _ K _ N B _ R _"},
   {kategori:"ANIMAL", jawaban:"SERIGALA", hint:"S _ R _ G _ L _"},
   {kategori:"COUNTRY", jawaban:"SPAIN", hint:"S _ A _ N"},
@@ -273,49 +271,58 @@ const kartu = [
 ];
 
 if(!roomId || !namaPlayer || !playerNum){
-  showPopup("❌ Data Hilang", "Back to lobby in 3s...", 3000);
-  setTimeout(()=>window.location.href = './index.html', 3000);
+  alert("❌ Data Hilang! Back to lobby");
+  window.location.href = './index.html';
 }
 
 const roomRef = ref(db, 'rooms/' + roomId);
 playerRef = ref(db, 'rooms/' + roomId + '/player' + playerNum);
 
-// ON DISCONNECT
 onDisconnect(playerRef).set(null);
 if(playerNum === 1){
   onDisconnect(roomRef).remove();
 }
 
-// LISTEN FIREBASE
 unsubscribe = onValue(roomRef, async (snapshot)=>{
   if(!snapshot.exists()){
-    showPopup("❌ Room Deleted", "Room not found! Back to lobby", 2000);
-    setTimeout(()=>window.location.href = './index.html', 2000);
+    alert("❌ Room Deleted! Back to lobby");
+    window.location.href = './index.html';
     return;
   }
 
   roomData = snapshot.val();
   
-  // AUTO ACAK DADU KALO GILIRAN BELUM ADA
-  if(!roomData.giliran && roomData.player1 && roomData.player2){
-    await update(roomRef, { giliran: Math.random() > 0.5 ? 1 : 2 });
+  // FIX 1: AUTO ACAK DADU KALO GILIRAN KOSONG
+  if(roomData.player1 && roomData.player2 && !roomData.giliran){
+    await update(roomRef, { 
+      giliran: Math.floor(Math.random()*2) + 1,
+      babak: 1,
+      status: 'waiting'
+    });
     return;
   }
 
   updateUI();
 }, (error)=>{
   console.error("Firebase error:", error);
-  showPopup('❌ Firebase Error', error.message, 4000);
+  alert('Firebase Error: ' + error.message);
 });
 
 function updateUI(){
-  document.getElementById('scoreName1').textContent = roomData.player1.nama.toUpperCase();
-  document.getElementById('scoreName2').textContent = roomData.player2 ? roomData.player2.nama.toUpperCase() : 'WAITING...';
-  document.getElementById('score1').textContent = roomData.player1.score || 0;
-  document.getElementById('score2').textContent = roomData.player2 ? roomData.player2.score : 0;
+  if(!roomData) return;
+  
+  document.getElementById('scoreName1').textContent = roomData.player1?.nama?.toUpperCase() || 'PLAYER 1';
+  document.getElementById('scoreName2').textContent = roomData.player2?.nama?.toUpperCase() || 'WAITING...';
+  document.getElementById('score1').textContent = roomData.player1?.score || 0;
+  document.getElementById('score2').textContent = roomData.player2?.score || 0;
   document.getElementById('babakNow').textContent = roomData.babak || 1;
 
   const giliran = roomData.giliran || 1;
+  
+  // FIX 2: INFO GILIRAN JELAS
+  const namaGiliran = giliran == 1 ? roomData.player1?.nama : roomData.player2?.nama;
+  document.getElementById('babakInfo').textContent = `Round ${roomData.babak || 1} / 10 | Turn: ${(namaGiliran || '...').toUpperCase()}`;
+  
   document.getElementById('scoreCard1').classList.toggle('active', giliran==1);
   document.getElementById('scoreCard2').classList.toggle('active', giliran==2);
 
@@ -353,11 +360,19 @@ function updateUI(){
 }
 
 window.ambilKartu = async function(){
-  if(!roomData) return;
+  // FIX 3: CEK ROOMDATA DULU
+  if(!roomData || !roomData.player1 || !roomData.player2) {
+    alert('Waiting for 2nd player...');
+    return;
+  }
   
   const giliran = roomData.giliran || 1;
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
-  if(!isPengambil) return;
+  
+  if(!isPengambil) {
+    alert('Not your turn!');
+    return;
+  }
 
   const card = kartu[Math.floor(Math.random()*kartu.length)];
   currentCard = card;
@@ -370,7 +385,7 @@ window.ambilKartu = async function(){
   });
 
   document.getElementById('btnDraw').disabled = true;
-  showPopup('🔔 Your Turn!', `${giliran==1 ? roomData.player2.nama : roomData.player1.nama} is guessing...`, 2000);
+  showPopup('🔔 DRAW!', `${giliran==1 ? roomData.player2.nama : roomData.player1.nama} is guessing...`, 2000);
 }
 
 function updateTimer(){
@@ -419,6 +434,7 @@ window.submitJawaban = async function(){
 }
   
 async function timeUp(){
+  if(!roomData) return;
   clearInterval(timerInterval);
   timerInterval = null;
   let updateData = {
@@ -485,44 +501,44 @@ function showPopup(icon, title, text, duration=3000){
   document.getElementById('overlay').classList.add('show');
   document.getElementById('popup').classList.add('show');
   setTimeout(closePopup, duration);
-}
+  }
   
-function closePopup(){
+  function closePopup(){
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('popup').classList.remove('show');
-}
+  }
   
-function showPointsPopup(text, player){
+  function showPointsPopup(text, player){
   const popup = document.getElementById('pointsPopup');
   popup.textContent = text;
   popup.classList.add('show');
   setTimeout(()=>popup.classList.remove('show'), 1000);
-}
+  }
   
-window.keluarRoom = async function(){
+  window.keluarRoom = async function(){
   if(confirm('Leave room?')){
-    if(playerNum == 1){
-      await remove(roomRef);
-    } else {
-      await set(playerRef, null);
-    }
-    localStorage.clear();
-    window.location.href = './index.html';
-    }
-    }
-    
-    window.addEventListener('beforeunload', ()=>{
-    if(playerNum == 1){
-    remove(roomRef);
-    } else {
-    set(playerRef, null);
-    }
-    });
-    
-    // Enter to submit
-    document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
-    if(e.key === 'Enter') submitJawaban();
-    });
-    </script>
-    </body>
-    </html>
+  if(playerNum == 1){
+  await remove(roomRef);
+  } else {
+  await set(playerRef, null);
+  }
+  localStorage.clear();
+  window.location.href = './index.html';
+  }
+  }
+  
+  window.addEventListener('beforeunload', ()=>{
+  if(playerNum == 1){
+  remove(roomRef);
+  } else {
+  set(playerRef, null);
+  }
+  });
+  
+  // Enter to submit
+  document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') submitJawaban();
+  });
+  </script>
+  </body>
+  </html>
