@@ -10,26 +10,33 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
+// ⚠️ GANTI INI DENGAN databaseURL KAMU DARI FIREBASE CONSOLE
 const firebaseConfig = {
   apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkKWCypJ923Lbsfc8",
   authDomain: "tebak-kata-reborn.firebaseapp.com",
+  databaseURL: "https://tebak-kata-reborn-default-rtdb.firebaseio.com", // <-- WAJIB ISI INI
   projectId: "tebak-kata-reborn",
   storageBucket: "tebak-kata-reborn.firebasestorage.app",
   messagingSenderId: "341111815240",
   appId: "1:341111815240:web:7db8309e4d5d2b433fac7d"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-window.db = db;
-window.ref = ref;
-window.set = set;
-window.get = get;
-window.onValue = onValue;
-window.update = update;
-window.remove = remove;
-window.serverTimestamp = serverTimestamp;
+try {
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  window.db = db;
+  window.ref = ref;
+  window.set = set;
+  window.get = get;
+  window.onValue = onValue;
+  window.update = update;
+  window.remove = remove;
+  window.serverTimestamp = serverTimestamp;
+  console.log("✅ Firebase connected!");
+} catch(e) {
+  console.error("❌ Firebase error:", e);
+  alert("Firebase gagal konek: " + e.message + "\n\nCek databaseURL dan rules Firebase");
+}
 </script>
 <style>
 :root{
@@ -91,6 +98,11 @@ body{
   text-transform:uppercase;font-family:'Orbitron';
 }
 
+.input-group input:focus{
+  border-color:var(--neon-purple);
+  box-shadow:0 0 20px rgba(139,92,246,0.5);
+}
+
 .btn{
   width:100%;padding:18px;border:none;border-radius:16px;
   background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));
@@ -101,6 +113,7 @@ body{
 }
 
 .btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(139,92,246,0.7)}
+.btn:active{transform:scale(0.98)}
 .btn-outline{
   background:transparent;
   border:2px solid var(--neon-purple);
@@ -150,6 +163,12 @@ body{
   justify-content:space-between;
   align-items:center;
   cursor:pointer;
+  transition:all 0.3s;
+}
+
+.room-item:hover{
+  background:rgba(139,92,246,0.2);
+  border-color:var(--neon-purple);
 }
 
 .room-item.full{
@@ -267,7 +286,6 @@ let roomId = '';
 let unsubscribe = null;
 let roomsUnsubscribe = null;
 
-// Pake addEventListener biar gak kehapus onclick
 document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('btnCreate').addEventListener('click', buatRoom);
   document.getElementById('btnQuick').addEventListener('click', autoJoin);
@@ -280,8 +298,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 function loadRooms(){
   if(roomsUnsubscribe) roomsUnsubscribe();
 
+  console.log("Loading rooms from Firebase...");
   const roomsRef = ref(db, 'rooms');
   roomsUnsubscribe = onValue(roomsRef, (snapshot)=>{
+    console.log("Rooms snapshot:", snapshot.exists());
     const roomListEl = document.getElementById('roomList');
     roomListEl.innerHTML = '';
 
@@ -295,21 +315,21 @@ function loadRooms(){
 
     Object.keys(rooms).forEach(id=>{
       const room = rooms[id];
-      const isFull = room.player2 && room.status !== 'waiting';
-      const isWaiting = room.status === 'waiting' && !room.player2;
+      const isFull = room.player2 && room.status!== 'waiting';
+      const isWaiting = room.status === 'waiting' &&!room.player2;
 
       if(isWaiting || isFull){
         hasRoom = true;
         const roomItem = document.createElement('div');
-        roomItem.className = 'room-item' + (isFull ? ' full' : '');
+        roomItem.className = 'room-item' + (isFull? ' full' : '');
 
         roomItem.innerHTML = `
           <div>
             <div class="room-id">${id}</div>
             <div style="font-size:12px;color:var(--text-dim)">Host: ${room.player1.nama}</div>
           </div>
-          <div class="room-status ${isFull ? 'status-full' : 'status-available'}">
-            ${isFull ? 'FULL' : 'OPEN'}
+          <div class="room-status ${isFull? 'status-full' : 'status-available'}">
+            ${isFull? 'FULL' : 'OPEN'}
           </div>
         `;
 
@@ -324,153 +344,182 @@ function loadRooms(){
     if(!hasRoom){
       roomListEl.innerHTML = `<div class="no-room">No open rooms<br>Create one!</div>`;
     }
+  }, (error)=>{
+    console.error("Load rooms error:", error);
+    document.getElementById('roomList').innerHTML = `<div class="no-room">Error loading rooms<br>${error.message}</div>`;
   });
 }
 
 window.quickJoin = async function(targetRoomId){
-  namaPlayer = document.getElementById('inputNama').value.trim();
-  if(!namaPlayer){
-    showToast('Enter nickname first!', 'error');
-    return;
+  try {
+    namaPlayer = document.getElementById('inputNama').value.trim();
+    if(!namaPlayer){
+      showToast('Enter nickname first!', 'error');
+      return;
+    }
+
+    console.log("Quick joining room:", targetRoomId);
+    roomId = targetRoomId;
+    const roomRef = ref(db, 'rooms/' + roomId);
+    const snapshot = await get(roomRef);
+
+    if(!snapshot.exists()){
+      showToast('Room deleted!', 'error');
+      loadRooms();
+      return;
+    }
+
+    const data = snapshot.val();
+    if(data.player2){
+      showToast('Room is full!', 'error');
+      loadRooms();
+      return;
+    }
+
+    await update(roomRef, {
+      player2: {nama: namaPlayer, score: 0, ready: true},
+      status: 'ready'
+    });
+
+    localStorage.setItem('namaPlayer', namaPlayer);
+    localStorage.setItem('roomId', roomId);
+    localStorage.setItem('playerNum', '2');
+
+    showToast('Joined Room!', 'success');
+    setTimeout(()=>masukGame(), 1500);
+  } catch(e) {
+    console.error("Quick join error:", e);
+    showToast("Error: " + e.message, 'error');
   }
-
-  roomId = targetRoomId;
-  const roomRef = ref(db, 'rooms/' + roomId);
-  const snapshot = await get(roomRef);
-
-  if(!snapshot.exists()){
-    showToast('Room deleted!', 'error');
-    loadRooms();
-    return;
-  }
-
-  const data = snapshot.val();
-  if(data.player2){
-    showToast('Room is full!', 'error');
-    loadRooms();
-    return;
-  }
-
-  await update(roomRef, {
-    player2: {nama: namaPlayer, score: 0, ready: true},
-    status: 'ready'
-  });
-
-  localStorage.setItem('namaPlayer', namaPlayer);
-  localStorage.setItem('roomId', roomId);
-  localStorage.setItem('playerNum', '2');
-
-  showToast('Joined Room!', 'success');
-  setTimeout(()=>masukGame(), 1500);
 }
 
 window.buatRoom = async function(){
-  namaPlayer = document.getElementById('inputNama').value.trim();
-  if(!namaPlayer){
-    showToast('Enter your nickname first!', 'error');
-    return;
+  try {
+    namaPlayer = document.getElementById('inputNama').value.trim();
+    if(!namaPlayer){
+      showToast('Enter nickname first!', 'error');
+      return;
+    }
+
+    console.log("Creating room...");
+    roomId = Math.random().toString(36).substring(2,8).toUpperCase();
+    const roomRef = ref(db, 'rooms/' + roomId);
+
+    await set(roomRef, {
+      player1: {nama: namaPlayer, score: 0, ready: true},
+      player2: null,
+      status: 'waiting',
+      createdAt: serverTimestamp(),
+      babak: 0,
+      giliran: 1
+    });
+
+    console.log("Room created:", roomId);
+    localStorage.setItem('namaPlayer', namaPlayer);
+    localStorage.setItem('roomId', roomId);
+    localStorage.setItem('playerNum', '1');
+
+    document.getElementById('roomCode').textContent = roomId;
+    showScreen('screen-lobby');
+    showToast('Room Created!', 'success');
+
+    listenRoom();
+  } catch(e) {
+    console.error("Create room error:", e);
+    showToast("Error: " + e.message, 'error');
   }
-
-  roomId = Math.random().toString(36).substring(2,8).toUpperCase();
-  const roomRef = ref(db, 'rooms/' + roomId);
-
-  await set(roomRef, {
-    player1: {nama: namaPlayer, score: 0, ready: true},
-    player2: null,
-    status: 'waiting',
-    createdAt: serverTimestamp(),
-    babak: 0,
-    giliran: 1
-  });
-
-  localStorage.setItem('namaPlayer', namaPlayer);
-  localStorage.setItem('roomId', roomId);
-  localStorage.setItem('playerNum', '1');
-
-  document.getElementById('roomCode').textContent = roomId;
-  showScreen('screen-lobby');
-  showToast('Room Created!', 'success');
-
-  listenRoom();
 }
 
 window.joinRoom = async function(){
-  namaPlayer = document.getElementById('inputNama').value.trim();
-  roomId = document.getElementById('inputKode').value.trim().toUpperCase();
+  try {
+    namaPlayer = document.getElementById('inputNama').value.trim();
+    roomId = document.getElementById('inputKode').value.trim().toUpperCase();
 
-  if(!namaPlayer){
-    showToast('Enter nickname first!', 'error');
-    return;
+    if(!namaPlayer){
+      showToast('Enter nickname first!', 'error');
+      return;
+    }
+    if(!roomId || roomId.length<6){
+      showToast('Enter 6 digit room code!', 'error');
+      return;
+    }
+
+    console.log("Joining room:", roomId);
+    const roomRef = ref(db, 'rooms/' + roomId);
+    const snapshot = await get(roomRef);
+
+    if(!snapshot.exists()){
+      showToast('Room not found!', 'error');
+      return;
+    }
+
+    const data = snapshot.val();
+
+    if(data.player2){
+      showToast('Room is full!', 'error');
+      return;
+    }
+
+    await update(roomRef, {
+      player2: {nama: namaPlayer, score: 0, ready: true},
+      status: 'ready'
+    });
+
+    localStorage.setItem('namaPlayer', namaPlayer);
+    localStorage.setItem('roomId', roomId);
+    localStorage.setItem('playerNum', '2');
+
+    showToast('Joined Room!', 'success');
+    setTimeout(()=>masukGame(), 1500);
+  } catch(e) {
+    console.error("Join room error:", e);
+    showToast("Error: " + e.message, 'error');
   }
-  if(!roomId || roomId.length<6){
-    showToast('Enter 6 digit room code!', 'error');
-    return;
-  }
-
-  const roomRef = ref(db, 'rooms/' + roomId);
-  const snapshot = await get(roomRef);
-
-  if(!snapshot.exists()){
-    showToast('Room not found!', 'error');
-    return;
-  }
-
-  const data = snapshot.val();
-
-  if(data.player2){
-    showToast('Room is full!', 'error');
-    return;
-  }
-
-  await update(roomRef, {
-    player2: {nama: namaPlayer, score: 0, ready: true},
-    status: 'ready'
-  });
-
-  localStorage.setItem('namaPlayer', namaPlayer);
-  localStorage.setItem('roomId', roomId);
-  localStorage.setItem('playerNum', '2');
-
-  showToast('Joined Room!', 'success');
-  setTimeout(()=>masukGame(), 1500);
 }
 
 window.autoJoin = async function(){
-  namaPlayer = document.getElementById('inputNama').value.trim();
-  if(!namaPlayer){
-    showToast('Enter nickname first!', 'error');
-    return;
-  }
-
-  showToast('Searching room...', 'success');
-
-  const roomsRef = ref(db, 'rooms');
-  const snapshot = await get(roomsRef);
-
-  if(!snapshot.exists()){
-    showToast('No room available', 'error');
-    return;
-  }
-
-  const rooms = snapshot.val();
-  let foundRoom = null;
-
-  for(let id in rooms){
-    if(rooms[id].status === 'waiting' && !rooms[id].player2){
-      foundRoom = id;
-      break;
+  try {
+    namaPlayer = document.getElementById('inputNama').value.trim();
+    if(!namaPlayer){
+      showToast('Enter nickname first!', 'error');
+      return;
     }
-  }
 
-  if(!foundRoom){
-    showToast('No room found. Create one!', 'error');
-    return;
-  }
+    showToast('Searching room...', 'success');
+    console.log("Auto joining...");
 
-  quickJoin(foundRoom);
+    const roomsRef = ref(db, 'rooms');
+    const snapshot = await get(roomsRef);
+
+    if(!snapshot.exists()){
+      showToast('No room available', 'error');
+      return;
+    }
+
+    const rooms = snapshot.val();
+    let foundRoom = null;
+
+    for(let id in rooms){
+      if(rooms[id].status === 'waiting' &&!rooms[id].player2){
+        foundRoom = id;
+        break;
+      }
+    }
+
+    if(!foundRoom){
+      showToast('No room found. Create one!', 'error');
+      return;
+    }
+
+    quickJoin(foundRoom);
+  } catch(e) {
+    console.error("Auto join error:", e);
+    showToast("Error: " + e.message, 'error');
+  }
 }
 
 function listenRoom(){
+  console.log("Listening room:", roomId);
   const roomRef = ref(db, 'rooms/' + roomId);
   unsubscribe = onValue(roomRef, (snapshot)=>{
     if(!snapshot.exists()){
@@ -480,29 +529,37 @@ function listenRoom(){
     }
 
     const data = snapshot.val();
+    console.log("Room data:", data.status);
     if(data.status === 'ready' && data.player1 && data.player2){
       setTimeout(()=>masukGame(), 1500);
     }
+  }, (error)=>{
+    console.error("Listen room error:", error);
+    showToast("Connection error: " + error.message, 'error');
   });
 }
 
 function masukGame(){
+  console.log("Redirecting to game.html?room=" + roomId);
   if(unsubscribe) unsubscribe();
   if(roomsUnsubscribe) roomsUnsubscribe();
-  // FIX: pake ./ biar path nya bener
   window.location.href = `./game.html?room=${roomId}`;
 }
 
 window.batalRoom = async function(){
-  if(unsubscribe) unsubscribe();
-  if(roomId && localStorage.getItem('playerNum')==='1'){
-    await remove(ref(db, 'rooms/' + roomId));
+  try {
+    if(unsubscribe) unsubscribe();
+    if(roomId && localStorage.getItem('playerNum')==='1'){
+      await remove(ref(db, 'rooms/' + roomId));
+    }
+    localStorage.clear();
+    showScreen('screen-menu');
+    document.getElementById('inputKode').value = '';
+    showToast('Left room', 'success');
+    loadRooms();
+  } catch(e) {
+    console.error("Cancel room error:", e);
   }
-  localStorage.clear();
-  showScreen('screen-menu');
-  document.getElementById('inputKode').value = '';
-  showToast('Left room', 'success');
-  loadRooms();
 }
 
 function showScreen(id){
