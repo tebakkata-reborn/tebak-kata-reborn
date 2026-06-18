@@ -11,7 +11,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, set, get, onValue, update, remove, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkKWCypJ923Lbsfc8",
+  apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkWCypJ923Lbsfc8",
   authDomain: "tebak-kata-reborn.firebaseapp.com",
   databaseURL: "https://tebak-kata-reborn-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "tebak-kata-reborn",
@@ -87,7 +87,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 .overlay.show{display:block}
 .points-popup{position:fixed;top:25%;left:50%;transform:translateX(-50%) translateY(-60px);font-size:56px;font-weight:900;font-family:'Orbitron';opacity:0;transition:all 0.6s cubic-bezier(0.68,-0.55,0.265,1.55);z-index:1001;pointer-events:none;background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(16,185,129,0.8)}
 .points-popup.show{transform:translateX(-50%) translateY(0);opacity:1}
-.debug-info{position:fixed;bottom:10px;left:10px;font-size:10px;color:var(--text-dim);background:rgba(0,0,0,0.5);padding:8px;border-radius:8px;font-family:monospace}
+.debug-info{position:fixed;bottom:10px;left:10px;font-size:10px;color:var(--text-dim);background:rgba(0,0,0,0.5);padding:8px;border-radius:8px;font-family:monospace;z-index:9999}
 </style>
 </head>
 <body>
@@ -150,7 +150,7 @@ body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%
 
 <div class="points-popup" id="pointsPopup">+15</div>
 
-<div class="debug-info" id="debugInfo"></div>
+<div class="debug-info" id="debugInfo">Loading...</div>
 
 <script>
 lucide.createIcons();
@@ -158,11 +158,10 @@ lucide.createIcons();
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
-let playerNum = Number(localStorage.getItem('playerNum'));
+let playerNum = parseInt(localStorage.getItem('playerNum')) || 0;
 
 roomId = roomId ? roomId.toUpperCase() : null;
 document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + (roomId || '----');
-document.getElementById('debugInfo').textContent = `Room:${roomId} | P:${playerNum} | ${namaPlayer}`;
 
 let roomData = null;
 let currentCard = null;
@@ -171,7 +170,6 @@ let timerInterval = null;
 let unsubscribe = null;
 let playerRef = null;
 
-// 100 KARTU
 const kartu = [
   {kategori:"FRUIT", jawaban:"JERUK", hint:"J _ R _ K"},
   {kategori:"CITY", jawaban:"JAKARTA", hint:"J _ K _ R T _"},
@@ -270,8 +268,8 @@ const kartu = [
   {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
 ];
 
-if(!roomId || !namaPlayer || !playerNum || playerNum < 1){
-  alert("❌ Data Hilang! Masuk lobby dulu");
+if(!roomId || !namaPlayer || !playerNum || playerNum < 1 || playerNum > 2){
+  alert("❌ Data Hilang! Masuk lobby dulu. PlayerNum: " + playerNum);
   window.location.href = './index.html';
 }
 
@@ -292,10 +290,14 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
 
   roomData = snapshot.val();
   
-  // FIX BUG: Cek undefined/null/0 semua
+  document.getElementById('debugInfo').textContent = 
+    `Room:${roomId} | P:${playerNum} | Giliran:${roomData.giliran} | P1:${!!roomData.player1} | P2:${!!roomData.player2}`;
+  
+  console.log("Room data:", roomData);
+
   if(roomData.player1 && roomData.player2 && (roomData.giliran === undefined || roomData.giliran === null || roomData.giliran === 0)){
-    const acak = Math.random() > 0.5 ? 1 : 2;
-    console.log("Acak dadu:", acak);
+    const acak = Math.floor(Math.random() * 2) + 1;
+    console.log("🎲 Acak dadu:", acak);
     await update(roomRef, { 
       giliran: acak,
       babak: 1,
@@ -307,6 +309,7 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
   updateUI();
 }, (error)=>{
   console.error("Firebase error:", error);
+  alert("Firebase error: " + error.message);
 });
 
 function updateUI(){
@@ -328,6 +331,8 @@ function updateUI(){
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
   document.getElementById('areaPengambil').style.display = isPengambil ? 'block' : 'none';
   document.getElementById('areaPenebak').style.display = !isPengambil ? 'block' : 'none';
+
+  console.log(`UI Update | Giliran:${giliran} | PlayerNum:${playerNum} | IsPengambil:${isPengambil}`);
 
   if(roomData.currentCard){
     currentCard = roomData.currentCard;
@@ -359,6 +364,7 @@ function updateUI(){
 }
 
 window.ambilKartu = async function(){
+  console.log("ambilKartu clicked");
   if(!roomData || !roomData.player1 || !roomData.player2) {
     alert('Waiting for 2nd player...');
     return;
@@ -368,7 +374,7 @@ window.ambilKartu = async function(){
   const isPengambil = (giliran==1 && playerNum==1) || (giliran==2 && playerNum==2);
   
   if(!isPengambil) {
-    alert('Not your turn!');
+    alert('Not your turn! Giliran:' + giliran + ' Kamu:P' + playerNum);
     return;
   }
 
@@ -494,46 +500,49 @@ window.nextBabak = async function(){
   
 function showPopup(icon, title, text, duration=3000){
   document.getElementById('popupIcon').textContent = icon;
+  document.getElementById('popupTitle').textContent = title;
+  document.getElementById('popupText').textContent = text;
+  document.getElementById('overlay').classList.add('show');
   document.getElementById('popup').classList.add('show');
   setTimeout(closePopup, duration);
-  }
-  
-  function closePopup(){
+}
+
+function closePopup(){
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('popup').classList.remove('show');
-  }
-  
-  function showPointsPopup(text, player){
+}
+
+function showPointsPopup(text, player){
   const popup = document.getElementById('pointsPopup');
   popup.textContent = text;
   popup.classList.add('show');
   setTimeout(()=>popup.classList.remove('show'), 1000);
-  }
-  
-  window.keluarRoom = async function(){
+}
+
+window.keluarRoom = async function(){
   if(confirm('Leave room?')){
+    if(playerNum == 1){
+      await remove(roomRef);
+    } else {
+      await set(playerRef, null);
+    }
+    localStorage.clear();
+    window.location.href = './index.html';
+  }
+}
+
+window.addEventListener('beforeunload', ()=>{
   if(playerNum == 1){
-  await remove(roomRef);
+    remove(roomRef);
   } else {
-  await set(playerRef, null);
+    set(playerRef, null);
   }
-  localStorage.clear();
-  window.location.href = './index.html';
-  }
-  }
-  
-  window.addEventListener('beforeunload', ()=>{
-  if(playerNum == 1){
-  remove(roomRef);
-  } else {
-  set(playerRef, null);
-  }
-  });
-  
-  // Enter to submit
-  document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
+});
+
+// Enter to submit
+document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
   if(e.key === 'Enter') submitJawaban();
-  });
-  </script>
-  </body>
-  </html>
+});
+</script>
+</body>
+</html>
