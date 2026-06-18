@@ -270,9 +270,8 @@ const kartu = [
   {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
 ];
 
-// FIX 1: VALIDASI PLAYER NUM
 if(!roomId || !namaPlayer || !playerNum || playerNum < 1){
-  alert("❌ Data Hilang! Masuk lobby dulu buat set Player 1/2");
+  alert("❌ Data Hilang! Masuk lobby dulu");
   window.location.href = './index.html';
 }
 
@@ -293,10 +292,12 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
 
   roomData = snapshot.val();
   
-  // FIX 2: AUTO ACAK DADU KALO 2 PLAYER UDAH ADA TAPI GILIRAN KOSONG
-  if(roomData.player1 && roomData.player2 && !roomData.giliran){
+  // FIX BUG: Cek undefined/null/0 semua
+  if(roomData.player1 && roomData.player2 && (roomData.giliran === undefined || roomData.giliran === null || roomData.giliran === 0)){
+    const acak = Math.random() > 0.5 ? 1 : 2;
+    console.log("Acak dadu:", acak);
     await update(roomRef, { 
-      giliran: Math.random() > 0.5 ? 1 : 2,
+      giliran: acak,
       babak: 1,
       status: 'waiting'
     });
@@ -319,7 +320,6 @@ function updateUI(){
   const giliran = roomData.giliran || 1;
   const namaGiliran = giliran == 1 ? roomData.player1?.nama : roomData.player2?.nama;
   
-  // FIX 3: INFO GILIRAN JELAS
   document.getElementById('babakInfo').textContent = `Round ${roomData.babak || 1} / 10 | Turn: ${(namaGiliran || '...').toUpperCase()}`;
   
   document.getElementById('scoreCard1').classList.toggle('active', giliran==1);
@@ -494,9 +494,6 @@ window.nextBabak = async function(){
   
 function showPopup(icon, title, text, duration=3000){
   document.getElementById('popupIcon').textContent = icon;
-  document.getElementById('popupTitle').textContent = title;
-  document.getElementById('popupText').textContent = text;
-  document.getElementById('overlay').classList.add('show');
   document.getElementById('popup').classList.add('show');
   setTimeout(closePopup, duration);
   }
