@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Tebak Kata Reborn - Online Lobby</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.300.0/dist/umd/lucide.js"></script>
+<script type="module">
+// Import Firebase SDK
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, child, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkKWCypJ923Lbsfc8",
+  authDomain: "tebak-kata-reborn.firebaseapp.com",
+  projectId: "tebak-kata-reborn",
+  storageBucket: "tebak-kata-reborn.firebasestorage.app",
+  messagingSenderId: "341111815240",
+  appId: "1:341111815240:web:7db8309e4d5d2b433fac7d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+window.db = db;
+window.ref = ref;
+window.set = set;
+window.get = get;
+window.child = child;
+window.onValue = onValue;
+window.update = update;
+window.remove = remove;
+window.serverTimestamp = serverTimestamp;
+</script>
+<style>
+:root{
+  --neon-purple:#8B5CF6;
+  --neon-pink:#EC4899;
+  --neon-cyan:#06B6D4;
+  --neon-green:#10B981;
+  --bg-dark:#050816;
+  --bg-card:#0A0E27;
+  --glass:rgba(139,92,246,0.1);
+  --text:#F8FAFC;
+  --text-dim:#94A3B8;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+body{
+  background:var(--bg-dark);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  overflow-x:hidden;
+}
+
+/* Animated background */
+body::before{
+  content:'';
+  position:fixed;
+  top:-50%;
+  left:-50%;
+  width:200%;
+  height:200%;
+  background:radial-gradient(circle at 20% 30%, rgba(139,92,246,0.3) 0%, transparent 50%),
+             radial-gradient(circle at 80% 70%, rgba(236,72,153,0.3) 0%, transparent 50%);
+  animation:rotateBg 20s linear infinite;
+  z-index:-1;
+}
+
+@keyframes rotateBg{
+ 0%{transform:rotate(0deg)}
+ 100%{transform:rotate(360deg)}
+}
+
+.container{width:100%;max-width:480px;z-index:1}
+
+.logo{
+  font-family:'Orbitron';font-size:38px;font-weight:900;
+  background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink),var(--neon-cyan));
+  background-size:200% 200%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;margin-bottom:8px;
+  animation:glowPulse 3s ease-in-out infinite, gradientShift 5s ease infinite;
+  text-shadow:0 0 40px rgba(139,92,246,0.6);
+  letter-spacing:2px;
+}
+
+@keyframes glowPulse{
+ 0%,100%{filter:drop-shadow(0 0 20px rgba(139,92,246,0.8))}
+ 50%{filter:drop-shadow(0 0 40px rgba(236,72,153,0.9))}
+}
+
+@keyframes gradientShift{
+ 0%,100%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+}
+
+.subtitle{
+  color:var(--text-dim);text-align:center;margin-bottom:40px;
+  font-size:13px;text-transform:uppercase;letter-spacing:3px;
+  animation:flicker 2s infinite
+}
+
+@keyframes flicker{
+ 0%,100%{opacity:1}
+ 50%{opacity:0.6}
+}
+
+.glass-card{
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  border:1px solid rgba(139,92,246,0.3);
+  border-radius:28px;
+  padding:35px;
+  box-shadow:0 0 50px rgba(139,92,246,0.2),
+             inset 0 1px 0 rgba(255,255,255,0.1);
+  position:relative;
+  overflow:hidden;
+}
+
+.glass-card::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation:shine 3s infinite;
+}
+
+@keyframes shine{
+ 0%{left:-100%}
+ 100%{left:100%}
+}
+
+.input-group{margin-bottom:20px}
+.input-group label{
+  font-size:11px;color:var(--neon-cyan);margin-bottom:8px;
+  display:block;text-transform:uppercase;letter-spacing:1px;font-weight:600
+}
+
+.input-group input{
+  width:100%;padding:16px;border-radius:14px;
+  border:2px solid rgba(139,92,246,0.3);
+  background:rgba(5,8,22,0.6);
+  color:var(--text);font-size:16px;outline:none;
+  text-transform:uppercase;font-weight:500;
+  transition:all 0.3s;
+  font-family:'Orbitron';
+  letter-spacing:1px;
+}
+
+.input-group input:focus{
+  border-color:var(--neon-purple);
+  box-shadow:0 0 20px rgba(139,92,246,0.5);
+  background:rgba(139,92,246,0.1);
+}
+
+.btn{
+  width:100%;padding:18px;border:none;border-radius:16px;
+  background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));
+  color:white;font-weight:700;font-size:16px;cursor:pointer;
+  transition:all 0.3s;text-transform:uppercase;letter-spacing:1px;
+  box-shadow:0 8px 30px rgba(139,92,246,0.5);
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  font-family:'Orbitron';
+  position:relative;overflow:hidden;
+}
+
+.btn::before{
+  content:'';
+  position:absolute;
+  top:50%;
+  left:50%;
+  width:0;
+  height:0;
+  background:rgba(255,255,255,0.3);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  transition:width 0.6s,height 0.6s;
+}
+
+.btn:active::before{
+  width:300px;
+  height:300px;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 40px rgba(139,92,246,0.7);
+}
+
+.btn-outline{
+  background:transparent;
+  border:2px solid var(--neon-purple);
+  box-shadow:0 0 20px rgba(139,92,246,0.3);
+}
+
+.btn-outline:hover{
+  background:rgba(139,92,246,0.2);
+  box-shadow:0 0 30px rgba(139,92,246,0.5);
+}
+
+.divider{
+  display:flex;align-items:center;margin:30px 0;
+  color:var(--text-dim);font-size:11px;text-transform:uppercase;
+  letter-spacing:2px
+}
+
+.divider::before,.divider::after{
+  content:'';flex:1;height:2px;
+  background:linear-gradient(90deg, transparent, var(--neon-purple), transparent);
+  margin:0 15px
+}
+
+.room-code{
+  font-family:'Orbitron';font-size:42px;font-weight:900;letter-spacing:12px;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  text-align:center;margin:25px 0;
+  animation:glowPulse 2s ease-in-out infinite;
+  text-shadow:0 0 30px rgba(6,182,212,0.6);
+}
+
+.waiting{
+  text-align:center;padding:40px
+}
+
+.waiting h3{
+  font-family:'Orbitron';font-size:20px;margin-bottom:15px;
+  color:var(--neon-cyan);
+}
+
+.loading-dots::after{
+  content:'';
+  animation:dots 1.5s steps(3,end) infinite
+}
+
+@keyframes dots{
+ 0%{content:''}
+  33%{content:'.'}
+ 66%{content:'..'}
+ 100%{content:'...'}
+}
+
+.toast{
+  position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);
+  background:linear-gradient(135deg,var(--neon-green),#059669);
+  color:white;padding:16px 24px;border-radius:14px;
+  font-size:14px;font-weight:600;opacity:0;transition:all 0.4s cubic-bezier(0.68,-0.55,0.265,1.55);
+  z-index:2000;display:flex;align-items:center;gap:10px;
+  box-shadow:0 10px 40px rgba(16,185,129,0.5);
+  border:1px solid rgba(255,255,255,0.2);
+  font-family:'Orbitron';letter-spacing:1px;
+}
+
+.toast.show{
+  transform:translateX(-50%) translateY(0);
+  opacity:1
+}
+
+.toast.error{
+  background:linear-gradient(135deg,#EF4444,#DC2626);
+  box-shadow:0 10px 40px rgba(239,68,68,0.5);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- MENU AWAL -->
+  <div id="screen-menu">
+    <div class="logo">TEBAK KATA</div>
+    <div class="subtitle">Online Multiplayer Arena</div>
+
+    <div class="glass-card">
+      <div class="input-group">
+        <label>Nickname Player</label>
+        <input type="text" id="inputNama" placeholder="ENTER NAME" maxlength="12">
+      </div>
+
+      <button class="btn" onclick="buatRoom()">
+        <i data-lucide="zap"></i> Create Room
+      </button>
+
+      <div class="divider">Or Join</div>
+
+      <div class="input-group">
+        <label>Room Code</label>
+        <input type="text" id="inputKode" placeholder="ABC123" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+      </div>
+
+      <button class="btn btn-outline" onclick="joinRoom()">
+        <i data-lucide="log-in"></i> Join Room
+      </button>
+
+      <button class="btn" style="margin-top:15px;background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green))" onclick="autoJoin()">
+        <i data-lucide="rocket"></i> Quick Match
+      </button>
+    </div>
+  </div>
+
+  <!-- LOBBY WAITING -->
+  <div id="screen-lobby" style="display:none">
+    <div class="glass-card waiting">
+      <h3>Waiting For Opponent...</h3>
+      <div class="room-code" id="roomCode">------</div>
+      <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase;letter-spacing:2px">
+        Share this code with your friend
+      </div>
+      <div class="loading-dots" style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching</div>
+
+      <button class="btn btn-outline" onclick="batalRoom()" style="margin-top:35px">
+        <i data-lucide="x-circle"></i> Cancel
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"><i data-lucide="check-circle"></i><span id="toastText"></span></div>
+
+<script>
+lucide.createIcons();
+
+let namaPlayer = '';
+let roomId = '';
+let unsubscribe = null;
+
+window.buatRoom = async function(){
+  namaPlayer = document.getElementById('inputNama').value.trim();
+  if(!namaPlayer){
+    showToast('Enter your nickname first!', 'error');
+    return;
+  }
+
+  roomId = Math.random().toString(36).substring(2,8).toUpperCase();
+  const roomRef = ref(db, 'rooms/' + roomId);
+
+  await set(roomRef, {
+    player1: {nama: namaPlayer, score: 0, ready: true},
+    player2: null,
+    status: 'waiting',
+    createdAt: serverTimestamp(),
+    babak: 0,
+    giliran: 1
+  });
+
+  localStorage.setItem('namaPlayer', namaPlayer);
+  localStorage.setItem('roomId', roomId);
+  localStorage.setItem('playerNum', '1');
+
+  document.getElementById('roomCode').textContent = roomId;
+  showScreen('screen-lobby');
+  showToast('Room Created!', 'success');
+
+  listenRoom();
+}
+
+window.joinRoom = async function(){
+  namaPlayer = document.getElementById('inputNama').value.trim();
+  roomId = document.getElementById('inputKode').value.trim().toUpperCase();
+
+  if(!namaPlayer){
+    showToast('Enter nickname first!', 'error');
+    return;
+  }
+  if(!roomId || roomId.length<6){
+    showToast('Enter 6 digit room code!', 'error');
+    return;
+  }
+
+  const roomRef = ref(db, 'rooms/' + roomId);
+  const snapshot = await get(roomRef);
+
+  if(!snapshot.exists()){
+    showToast('Room not found!', 'error');
+    return;
+  }
+
+  const data = snapshot.val();
+
+  if(data.player2){
+    showToast('Room is full!', 'error');
+    return;
+  }
+
+  await update(roomRef, {
+    player2: {nama: namaPlayer, score: 0, ready: true},
+    status: 'ready'
+  });
+
+  localStorage.setItem('namaPlayer', namaPlayer);
+  localStorage.setItem('roomId', roomId);
+  localStorage.setItem('playerNum', '2');
+
+  showToast('Joined Room!', 'success');
+  setTimeout(()=>masukGame(), 1000);
+}
+
+window.autoJoin = async function(){
+  namaPlayer = document.getElementById('inputNama').value.trim();
+  if(!namaPlayer){
+    showToast('Enter nickname first!', 'error');
+    return;
+  }
+
+  showToast('Searching room...', 'success');
+
+  const roomsRef = ref(db, 'rooms');
+  const snapshot = await get(roomsRef);
+
+  if(!snapshot.exists()){
+    showToast('No room available', 'error');
+    return;
+  }
+
+  const rooms = snapshot.val();
+  let foundRoom = null;
+
+  for(let id in rooms){
+    if(rooms[id].status === 'waiting' &&!rooms[id].player2){
+      foundRoom = id;
+      break;
+    }
+  }
+
+  if(!foundRoom){
+    showToast('No room found. Create one!', 'error');
+    return;
+  }
+
+  roomId = foundRoom;
+  const roomRef = ref(db, 'rooms/' + roomId);
+
+  await update(roomRef, {
+    player2: {nama: namaPlayer, score: 0, ready: true},
+    status: 'ready'
+  });
+
+  localStorage.setItem('namaPlayer', namaPlayer);
+  localStorage.setItem('roomId', roomId);
+  localStorage.setItem('playerNum', '2');
+
+  showToast('Matched!', 'success');
+  setTimeout(()=>masukGame(), 1000);
+}
+
+function listenRoom(){
+  const roomRef = ref(db, 'rooms/' + roomId);
+  unsubscribe = onValue(roomRef, (snapshot)=>{
+    if(!snapshot.exists()){
+      showToast('Room deleted!', 'error');
+      batalRoom();
+      return;
+    }
+
+    const data = snapshot.val();
+    if(data.status === 'ready' && data.player1 && data.player2){
+      setTimeout(()=>masukGame(), 1000);
+    }
+  });
+}
+
+function masukGame(){
+  if(unsubscribe) unsubscribe();
+  window.location.href = `game.html?room=${roomId}`;
+}
+
+window.batalRoom = async function(){
+  if(unsubscribe) unsubscribe();
+  if(roomId && localStorage.getItem('playerNum')==='1'){
+    await remove(ref(db, 'rooms/' + roomId));
+  }
+  localStorage.clear();
+  showScreen('screen-menu');
+  document.getElementById('inputKode').value = '';
+  showToast('Left room', 'success');
+}
+
+function showScreen(id){
+  document.getElementById('screen-menu').style.display = id==='screen-menu'?'block':'none';
+  document.getElementById('screen-lobby').style.display = id==='screen-lobby'?'block':'none';
+}
+
+function showToast(msg, type='success'){
+  const toast = document.getElementById('toast');
+  document.getElementById('toastText').textContent = msg;
+  toast.className = 'toast' + (type==='error'?' error':'') + ' show';
+  setTimeout(()=>toast.classList.remove('show'), 3000);
+}
+
+document.getElementById('inputKode').addEventListener('keypress', e=>{
+  if(e.key==='Enter') joinRoom();
+});
+document.getElementById('inputNama').addEventListener('keypress', e=>{
+  if(e.key==='Enter') document.getElementById('inputKode').focus();
+});
+</script>
+</body>
+</html>
