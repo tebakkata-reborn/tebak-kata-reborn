@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@0.300.0/dist/umd/lucide.js"></script>
 <script type="module">
-// Import Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, get, child, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -40,7 +39,6 @@ window.serverTimestamp = serverTimestamp;
   --neon-cyan:#06B6D4;
   --neon-green:#10B981;
   --bg-dark:#050816;
-  --bg-card:#0A0E27;
   --glass:rgba(139,92,246,0.1);
   --text:#F8FAFC;
   --text-dim:#94A3B8;
@@ -58,7 +56,6 @@ body{
   overflow-x:hidden;
 }
 
-/* Animated background */
 body::before{
   content:'';
   position:fixed;
@@ -97,18 +94,12 @@ body::before{
 
 @keyframes gradientShift{
  0%,100%{background-position:0% 50%}
-  50%{background-position:100% 50%}
+ 50%{background-position:100% 50%}
 }
 
 .subtitle{
-  color:var(--text-dim);text-align:center;margin-bottom:40px;
+  color:var(--text-dim);text-align:center;margin-bottom:30px;
   font-size:13px;text-transform:uppercase;letter-spacing:3px;
-  animation:flicker 2s infinite
-}
-
-@keyframes flicker{
- 0%,100%{opacity:1}
- 50%{opacity:0.6}
 }
 
 .glass-card{
@@ -116,27 +107,9 @@ body::before{
   backdrop-filter:blur(20px);
   border:1px solid rgba(139,92,246,0.3);
   border-radius:28px;
-  padding:35px;
-  box-shadow:0 0 50px rgba(139,92,246,0.2),
-             inset 0 1px 0 rgba(255,255,255,0.1);
-  position:relative;
-  overflow:hidden;
-}
-
-.glass-card::before{
-  content:'';
-  position:absolute;
-  top:0;
-  left:-100%;
-  width:100%;
-  height:100%;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-  animation:shine 3s infinite;
-}
-
-@keyframes shine{
- 0%{left:-100%}
- 100%{left:100%}
+  padding:30px;
+  box-shadow:0 0 50px rgba(139,92,246,0.2);
+  margin-bottom:20px;
 }
 
 .input-group{margin-bottom:20px}
@@ -159,7 +132,6 @@ body::before{
 .input-group input:focus{
   border-color:var(--neon-purple);
   box-shadow:0 0 20px rgba(139,92,246,0.5);
-  background:rgba(139,92,246,0.1);
 }
 
 .btn{
@@ -170,45 +142,21 @@ body::before{
   box-shadow:0 8px 30px rgba(139,92,246,0.5);
   display:flex;align-items:center;justify-content:center;gap:10px;
   font-family:'Orbitron';
-  position:relative;overflow:hidden;
 }
 
-.btn::before{
-  content:'';
-  position:absolute;
-  top:50%;
-  left:50%;
-  width:0;
-  height:0;
-  background:rgba(255,255,255,0.3);
-  border-radius:50%;
-  transform:translate(-50%,-50%);
-  transition:width 0.6s,height 0.6s;
-}
-
-.btn:active::before{
-  width:300px;
-  height:300px;
-}
-
-.btn:hover{
-  transform:translateY(-2px);
-  box-shadow:0 12px 40px rgba(139,92,246,0.7);
-}
-
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(139,92,246,0.7)}
 .btn-outline{
   background:transparent;
   border:2px solid var(--neon-purple);
   box-shadow:0 0 20px rgba(139,92,246,0.3);
 }
 
-.btn-outline:hover{
-  background:rgba(139,92,246,0.2);
-  box-shadow:0 0 30px rgba(139,92,246,0.5);
+.btn-quick{
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
 }
 
 .divider{
-  display:flex;align-items:center;margin:30px 0;
+  display:flex;align-items:center;margin:25px 0;
   color:var(--text-dim);font-size:11px;text-transform:uppercase;
   letter-spacing:2px
 }
@@ -224,30 +172,120 @@ body::before{
   background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;
   text-align:center;margin:25px 0;
-  animation:glowPulse 2s ease-in-out infinite;
   text-shadow:0 0 30px rgba(6,182,212,0.6);
 }
 
-.waiting{
-  text-align:center;padding:40px
-}
-
+.waiting{text-align:center;padding:40px}
 .waiting h3{
-  font-family:'Orbitron';font-size:20px;margin-bottom:15px;
-  color:var(--neon-cyan);
+  font-family:'Orbitron';font-size:20px;margin-bottom:15px;color:var(--neon-cyan);
 }
 
-.loading-dots::after{
-  content:'';
-  animation:dots 1.5s steps(3,end) infinite
+/* ROOM LIST BARU */
+.room-list-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;
+}
+.room-list-title{
+  font-family:'Orbitron';font-size:14px;color:var(--neon-cyan);
+  text-transform:uppercase;letter-spacing:2px;
+}
+.btn-refresh{
+  background:rgba(6,182,212,0.2);
+  border:1px solid var(--neon-cyan);
+  padding:8px 12px;
+  border-radius:10px;
+  font-size:12px;
+  cursor:pointer;
+  transition:all 0.3s;
+}
+.btn-refresh:hover{
+  background:rgba(6,182,212,0.4);
+  box-shadow:0 0 15px rgba(6,182,212,0.5);
 }
 
-@keyframes dots{
- 0%{content:''}
-  33%{content:'.'}
- 66%{content:'..'}
- 100%{content:'...'}
+.room-list{
+  max-height:280px;
+  overflow-y:auto;
+  padding-right:5px;
 }
+
+.room-list::-webkit-scrollbar{width:4px}
+.room-list::-webkit-scrollbar-track{background:rgba(139,92,246,0.1)}
+.room-list::-webkit-scrollbar-thumb{background:var(--neon-purple);border-radius:4px}
+
+.room-item{
+  background:rgba(139,92,246,0.1);
+  border:1px solid rgba(139,92,246,0.3);
+  border-radius:14px;
+  padding:14px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  cursor:pointer;
+  transition:all 0.3s;
+}
+
+.room-item:hover{
+  background:rgba(139,92,246,0.2);
+  border-color:var(--neon-purple);
+  transform:translateX(5px);
+}
+
+.room-item.full{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+.room-item.full:hover{
+  transform:none;
+  background:rgba(239,68,68,0.1);
+  border-color:#EF4444;
+}
+
+.room-info{
+  flex:1;
+}
+.room-id{
+  font-family:'Orbitron';font-size:16px;font-weight:700;
+  letter-spacing:2px;color:var(--text);
+}
+.room-host{
+  font-size:12px;color:var(--text-dim);margin-top:4px;
+}
+
+.room-status{
+  padding:6px 12px;
+  border-radius:20px;
+  font-size:10px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-family:'Orbitron';
+}
+
+.status-available{
+  background:rgba(16,185,129,0.2);
+  color:var(--neon-green);
+  border:1px solid var(--neon-green);
+  animation:pulse 2s infinite;
+}
+
+.status-full{
+  background:rgba(239,68,68,0.2);
+  color:#EF4444;
+  border:1px solid #EF4444;
+}
+
+@keyframes pulse{
+ 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.5)}
+ 50%{box-shadow:0 0 0 8px rgba(16,185,129,0)}
+}
+
+.no-room{
+  text-align:center;padding:40px 20px;color:var(--text-dim);
+  font-size:13px;
+}
+.no-room i{font-size:40px;margin-bottom:10px;color:var(--neon-purple);opacity:0.5}
 
 .toast{
   position:fixed;top:30px;left:50%;transform:translateX(-50%) translateY(-120px);
@@ -260,15 +298,8 @@ body::before{
   font-family:'Orbitron';letter-spacing:1px;
 }
 
-.toast.show{
-  transform:translateX(-50%) translateY(0);
-  opacity:1
-}
-
-.toast.error{
-  background:linear-gradient(135deg,#EF4444,#DC2626);
-  box-shadow:0 10px 40px rgba(239,68,68,0.5);
-}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.error{background:linear-gradient(135deg,#EF4444,#DC2626);box-shadow:0 10px 40px rgba(239,68,68,0.5)}
 </style>
 </head>
 <body>
@@ -290,7 +321,27 @@ body::before{
         <i data-lucide="zap"></i> Create Room
       </button>
 
-      <div class="divider">Or Join</div>
+      <button class="btn btn-quick" style="margin-top:12px" onclick="autoJoin()">
+        <i data-lucide="rocket"></i> Quick Match
+      </button>
+
+      <div class="divider">Available Rooms</div>
+
+      <div class="room-list-header">
+        <div class="room-list-title">Live Rooms</div>
+        <button class="btn-refresh" onclick="loadRooms()">
+          <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh
+        </button>
+      </div>
+
+      <div class="room-list" id="roomList">
+        <div class="no-room">
+          <i data-lucide="loader-2"></i>
+          <div>Loading rooms...</div>
+        </div>
+      </div>
+
+      <div class="divider">Or Join by Code</div>
 
       <div class="input-group">
         <label>Room Code</label>
@@ -299,10 +350,6 @@ body::before{
 
       <button class="btn btn-outline" onclick="joinRoom()">
         <i data-lucide="log-in"></i> Join Room
-      </button>
-
-      <button class="btn" style="margin-top:15px;background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green))" onclick="autoJoin()">
-        <i data-lucide="rocket"></i> Quick Match
       </button>
     </div>
   </div>
@@ -315,7 +362,7 @@ body::before{
       <div style="color:var(--text-dim);font-size:13px;margin-bottom:25px;text-transform:uppercase;letter-spacing:2px">
         Share this code with your friend
       </div>
-      <div class="loading-dots" style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching</div>
+      <div style="color:var(--neon-pink);font-size:18px;font-family:'Orbitron'">Searching<span class="loading-dots"></span></div>
 
       <button class="btn btn-outline" onclick="batalRoom()" style="margin-top:35px">
         <i data-lucide="x-circle"></i> Cancel
@@ -333,6 +380,109 @@ lucide.createIcons();
 let namaPlayer = '';
 let roomId = '';
 let unsubscribe = null;
+let roomsUnsubscribe = null;
+
+// Load rooms real-time
+function loadRooms(){
+  if(roomsUnsubscribe) roomsUnsubscribe();
+
+  const roomsRef = ref(db, 'rooms');
+  roomsUnsubscribe = onValue(roomsRef, (snapshot)=>{
+    const roomListEl = document.getElementById('roomList');
+    roomListEl.innerHTML = '';
+
+    if(!snapshot.exists()){
+      roomListEl.innerHTML = `
+        <div class="no-room">
+          <i data-lucide="wifi-off"></i>
+          <div>No rooms available<br>Create one to start!</div>
+        </div>
+      `;
+      lucide.createIcons();
+      return;
+    }
+
+    const rooms = snapshot.val();
+    let hasRoom = false;
+
+    Object.keys(rooms).forEach(id=>{
+      const room = rooms[id];
+      const isFull = room.player2 && room.status!== 'waiting';
+      const isWaiting = room.status === 'waiting' &&!room.player2;
+
+      if(isWaiting || isFull){
+        hasRoom = true;
+        const roomItem = document.createElement('div');
+        roomItem.className = 'room-item' + (isFull? ' full' : '');
+
+        roomItem.innerHTML = `
+          <div class="room-info">
+            <div class="room-id">${id}</div>
+            <div class="room-host">Host: ${room.player1.nama}</div>
+          </div>
+          <div class="room-status ${isFull? 'status-full' : 'status-available'}">
+            ${isFull? 'FULL' : 'OPEN'}
+          </div>
+        `;
+
+        if(!isFull){
+          roomItem.onclick = ()=>quickJoin(id);
+        }
+
+        roomListEl.appendChild(roomItem);
+      }
+    });
+
+    if(!hasRoom){
+      roomListEl.innerHTML = `
+        <div class="no-room">
+          <i data-lucide="search-x"></i>
+          <div>No open rooms<br>Click Create Room!</div>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+  });
+}
+
+loadRooms();
+
+window.quickJoin = async function(targetRoomId){
+  namaPlayer = document.getElementById('inputNama').value.trim();
+  if(!namaPlayer){
+    showToast('Enter nickname first!', 'error');
+    return;
+  }
+
+  roomId = targetRoomId;
+  const roomRef = ref(db, 'rooms/' + roomId);
+  const snapshot = await get(roomRef);
+
+  if(!snapshot.exists()){
+    showToast('Room deleted!', 'error');
+    loadRooms();
+    return;
+  }
+
+  const data = snapshot.val();
+  if(data.player2){
+    showToast('Room is full!', 'error');
+    loadRooms();
+    return;
+  }
+
+  await update(roomRef, {
+    player2: {nama: namaPlayer, score: 0, ready: true},
+    status: 'ready'
+  });
+
+  localStorage.setItem('namaPlayer', namaPlayer);
+  localStorage.setItem('roomId', roomId);
+  localStorage.setItem('playerNum', '2');
+
+  showToast('Joined Room!', 'success');
+  setTimeout(()=>masukGame(), 1000);
+}
 
 window.buatRoom = async function(){
   namaPlayer = document.getElementById('inputNama').value.trim();
@@ -437,20 +587,7 @@ window.autoJoin = async function(){
     return;
   }
 
-  roomId = foundRoom;
-  const roomRef = ref(db, 'rooms/' + roomId);
-
-  await update(roomRef, {
-    player2: {nama: namaPlayer, score: 0, ready: true},
-    status: 'ready'
-  });
-
-  localStorage.setItem('namaPlayer', namaPlayer);
-  localStorage.setItem('roomId', roomId);
-  localStorage.setItem('playerNum', '2');
-
-  showToast('Matched!', 'success');
-  setTimeout(()=>masukGame(), 1000);
+  quickJoin(foundRoom);
 }
 
 function listenRoom(){
@@ -471,6 +608,7 @@ function listenRoom(){
 
 function masukGame(){
   if(unsubscribe) unsubscribe();
+  if(roomsUnsubscribe) roomsUnsubscribe();
   window.location.href = `game.html?room=${roomId}`;
 }
 
@@ -483,6 +621,7 @@ window.batalRoom = async function(){
   showScreen('screen-menu');
   document.getElementById('inputKode').value = '';
   showToast('Left room', 'success');
+  loadRooms();
 }
 
 function showScreen(id){
