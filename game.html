@@ -6,9 +6,10 @@
 <title>Tebak Kata Reborn - Arena</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@0.300.0/dist/umd/lucide.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, update, remove, serverTimestamp, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyCt5eEVB0T7JAJS0XxkKWCypJ923Lbsfc8",
   authDomain: "tebak-kata-reborn.firebaseapp.com",
@@ -19,8 +20,22 @@ const firebaseConfig = {
   appId: "1:341111815240:web:7db8309e4d5d2b433fac7d"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+let db;
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app, firebaseConfig.databaseURL);
+  window.db = db;
+  window.ref = ref;
+  window.set = set;
+  window.get = get;
+  window.onValue = onValue;
+  window.update = update;
+  window.remove = remove;
+  window.serverTimestamp = serverTimestamp;
+  window.onDisconnect = onDisconnect;
+} catch(e) {
+  console.error("Firebase error:", e);
+}
 </script>
 <style>
 :root{
@@ -29,34 +44,115 @@ const db = firebase.database();
   --glass:rgba(139,92,246,0.1);--text:#F8FAFC;--text-dim:#94A3B8;
 }
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
-body{background:var(--bg-dark);color:var(--text);min-height:100vh;padding:20px}
-.container{max-width:500px;margin:0 auto}
-.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;padding:15px 20px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,0.3);border-radius:20px}
+body{background:var(--bg-dark);color:var(--text);min-height:100vh;padding:20px;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 40%, rgba(139,92,246,0.2) 0%, transparent 50%),radial-gradient(circle at 70% 60%, rgba(236,72,153,0.2) 0%, transparent 50%);animation:rotateBg 25s linear infinite;z-index:-1}
+@keyframes rotateBg{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.container{max-width:500px;margin:0 auto;z-index:1}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;padding:15px 20px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,0.3);border-radius:20px;box-shadow:0 0 30px rgba(139,92,246,0.2)}
 .logo-text{font-family:'Orbitron';font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.room-code{font-family:'Orbitron';font-size:11px;color:var(--neon-cyan);background:rgba(6,182,212,0.2);padding:6px 12px;border-radius:20px;border:1px solid rgba(6,182,212,0.5)}
-.loading{text-align:center;padding:60px 20px;color:var(--text-dim);font-family:'Orbitron'}
-.loading i{font-size:40px;color:var(--neon-purple);animation:spin 2s linear infinite}
-@keyframes spin{100%{transform:rotate(360deg)}}
-.error-box{background:rgba(239,68,68,0.2);border:2px solid var(--neon-red);border-radius:16px;padding:20px;margin-top:20px;text-align:left;font-size:12px;font-family:monospace}
-.btn{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));color:white;font-weight:700;font-size:16px;cursor:pointer;font-family:'Orbitron';margin-top:15px}
+.room-code{font-family:'Orbitron';font-size:11px;color:var(--neon-cyan);background:rgba(6,182,212,0.2);padding:6px 12px;border-radius:20px;border:1px solid rgba(6,182,212,0.5);letter-spacing:1px}
+.babak-info{text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:15px;text-transform:uppercase;letter-spacing:2px;font-family:'Orbitron'}
+.score-board{display:flex;gap:15px;margin-bottom:25px}
+.score-card{flex:1;padding:18px;border-radius:20px;text-align:center;background:var(--glass);backdrop-filter:blur(20px);border:2px solid rgba(139,92,246,0.2);transition:all 0.4s cubic-bezier(0.68,-0.55,0.265,1.55);position:relative;overflow:hidden}
+.score-card::before{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:linear-gradient(45deg,var(--neon-purple),var(--neon-pink),var(--neon-cyan));border-radius:20px;opacity:0;z-index:-1;transition:opacity 0.4s}
+.score-card.active{transform:scale(1.08);border-color:transparent}
+.score-card.active::before{opacity:1;animation:borderGlow 2s linear infinite}
+@keyframes borderGlow{0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}}
+.score-name{font-size:11px;color:var(--text-dim);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.score-value{font-size:36px;font-weight:900;font-family:'Orbitron';background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.timer{text-align:center;font-size:56px;font-weight:900;font-family:'Orbitron';margin:25px 0;background:linear-gradient(135deg,var(--neon-pink),var(--neon-red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 40px rgba(236,72,153,0.6);animation:pulseTimer 1s infinite}
+@keyframes pulseTimer{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.timer.warning{animation:blink 0.5s infinite;filter:drop-shadow(0 0 20px var(--neon-red))}
+@keyframes blink{0%,50%,100%{opacity:1}25%,75%{opacity:0.3}}
+.glass-card{background:var(--glass);backdrop-filter:blur(20px);border:2px solid rgba(139,92,246,0.3);border-radius:28px;padding:35px;box-shadow:0 0 50px rgba(139,92,246,0.3);min-height:220px;display:flex;flex-direction:column;justify-content:center;transform:scale(0) rotateY(180deg);transition:all 0.6s cubic-bezier(0.68,-0.55,0.265,1.55);margin:20px 0}
+.glass-card.show{transform:scale(1) rotateY(0deg)}
+.card-kategori{font-size:12px;color:var(--neon-cyan);font-weight:700;background:rgba(6,182,212,0.2);padding:8px 16px;border-radius:20px;display:inline-block;margin:0 auto 20px;border:1px solid rgba(6,182,212,0.5);font-family:'Orbitron';letter-spacing:1px;text-transform:uppercase}
+.card-hint{font-size:38px;font-weight:900;font-family:'Orbitron';letter-spacing:8px;margin:20px 0;text-align:center;background:linear-gradient(135deg,var(--text),var(--neon-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.card-jawaban{font-size:20px;color:var(--neon-green);margin-top:15px;text-align:center;font-family:'Orbitron';font-weight:700}
+.input-jawab{width:100%;padding:18px;border-radius:16px;border:2px solid rgba(139,92,246,0.3);background:rgba(5,8,22,0.8);color:var(--text);font-size:20px;text-align:center;outline:none;margin-bottom:15px;text-transform:uppercase;font-family:'Orbitron';letter-spacing:2px;font-weight:700;transition:all 0.3s}
+.input-jawab:focus{border-color:var(--neon-green);box-shadow:0 0 30px rgba(16,185,129,0.5);background:rgba(16,185,129,0.1)}
+.btn{width:100%;padding:18px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--neon-purple),var(--neon-pink));color:white;font-weight:700;font-size:16px;cursor:pointer;transition:all 0.3s;text-transform:uppercase;letter-spacing:1px;box-shadow:0 8px 30px rgba(139,92,246,0.5);display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Orbitron';position:relative;overflow:hidden}
+.btn:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(139,92,246,0.7)}
+.btn:active{transform:scale(0.95)}
+.btn-success{background:linear-gradient(135deg,var(--neon-green),#059669);box-shadow:0 8px 30px rgba(16,185,129,0.5)}
+.btn-skip{background:linear-gradient(135deg,rgba(239,68,68,0.3),rgba(220,38,38,0.3));margin-top:12px;border:1px solid rgba(239,68,68,0.5)}
+.btn-leave{background:rgba(239,68,68,0.2);border:1px solid var(--neon-red);margin-top:20px}
+.popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:var(--glass);backdrop-filter:blur(30px);border:2px solid rgba(139,92,246,0.5);border-radius:28px;padding:45px 35px;z-index:1000;text-align:center;min-width:320px;transition:all 0.5s cubic-bezier(0.68,-0.55,0.265,1.55);box-shadow:0 20px 60px rgba(139,92,246,0.5)}
+.popup.show{transform:translate(-50%,-50%) scale(1)}
+.popup-icon{font-size:70px;margin-bottom:20px;animation:iconBounce 0.6s}
+.popup-title{font-size:26px;font-weight:900;margin-bottom:12px;font-family:'Orbitron';background:linear-gradient(135deg,var(--neon-cyan),var(--neon-green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.popup-text{color:var(--text-dim);margin-bottom:25px;font-size:15px}
+@keyframes iconBounce{0%{transform:scale(0) rotate(180deg)}50%{transform:scale(1.3) rotate(-10deg)}100%{transform:scale(1) rotate(0deg)}}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:999;display:none}
+.overlay.show{display:block}
+.points-popup{position:fixed;top:25%;left:50%;transform:translateX(-50%) translateY(-60px);font-size:56px;font-weight:900;font-family:'Orbitron';opacity:0;transition:all 0.6s cubic-bezier(0.68,-0.55,0.265,1.55);z-index:1001;pointer-events:none;background:linear-gradient(135deg,var(--neon-green),var(--neon-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 30px rgba(16,185,129,0.8)}
+.points-popup.show{transform:translateX(-50%) translateY(0);opacity:1}
+.debug-info{position:fixed;bottom:10px;left:10px;font-size:10px;color:var(--text-dim);background:rgba(0,0,0,0.5);padding:8px;border-radius:8px;font-family:monospace}
 </style>
 </head>
 <body>
 
-<div class="container" id="gameContainer" style="display:none">
-  <!-- ISI GAME KAMU TARO SINI, SAMA KAYAK SEBELUMNYA -->
+<!-- LANGSUNG TAMPIL, GAK PAKE LOADING -->
+<div class="container" id="gameContainer">
   <div class="header">
     <div class="logo-text">⚡ TEBAK KATA ARENA</div>
     <div class="room-code" id="roomCodeDisplay">ROOM: ----</div>
   </div>
-  <div style="text-align:center;padding:100px">Game UI kamu taro di sini</div>
+
+  <div class="babak-info">Round <span id="babakNow">1</span> / 10</div>
+  
+  <div class="score-board">
+    <div class="score-card" id="scoreCard1">
+      <div class="score-name" id="scoreName1">PLAYER 1</div>
+      <div class="score-value" id="score1">0</div>
+    </div>
+    <div class="score-card" id="scoreCard2">
+      <div class="score-name" id="scoreName2">PLAYER 2</div>
+      <div class="score-value" id="score2">0</div>
+    </div>
+  </div>
+
+  <div class="timer" id="timer">02:00</div>
+
+  <div class="glass-card" id="card">
+    <div class="card-kategori" id="cardKategori">KATEGORI</div>
+    <div class="card-hint" id="cardHint">WAITING...</div>
+    <div class="card-jawaban" id="cardJawaban" style="display:none">JAWABAN</div>
+  </div>
+
+  <div id="areaPengambil">
+    <button class="btn" onclick="ambilKartu()">
+      <i data-lucide="shuffle"></i> Draw Card
+    </button>
+  </div>
+
+  <div id="areaPenebak" style="display:none">
+    <input type="text" class="input-jawab" id="inputJawab" placeholder="TYPE ANSWER...">
+    <button class="btn btn-success" onclick="submitJawaban()">
+      <i data-lucide="send"></i> Submit Answer
+    </button>
+    <button class="btn btn-skip" onclick="lewatiBabak()">
+      <i data-lucide="skip-forward"></i> Skip Round
+    </button>
+  </div>
+
+  <button class="btn btn-leave" onclick="keluarRoom()">
+    <i data-lucide="log-out"></i> Leave Room
+  </button>
 </div>
 
-<div class="loading" id="loading">
-  <i data-lucide="loader-2"></i>
-  <div style="margin-top:20px">Connecting to Arena...</div>
-  <div id="debugBox"></div>
+<!-- POPUP MODERN -->
+<div class="overlay" id="overlay"></div>
+<div class="popup" id="popup">
+  <div class="popup-icon" id="popupIcon">🎉</div>
+  <div class="popup-title" id="popupTitle">Correct!</div>
+  <div class="popup-text" id="popupText">+15 Points for Guesser</div>
+  <button class="btn" onclick="nextBabak()">Next Round</button>
 </div>
+
+<div class="points-popup" id="pointsPopup">+15</div>
+
+<div class="debug-info" id="debugInfo"></div>
 
 <script>
 lucide.createIcons();
@@ -67,80 +163,377 @@ const namaPlayer = localStorage.getItem('namaPlayer');
 let playerNum = localStorage.getItem('playerNum');
 
 roomId = roomId ? roomId.toUpperCase() : null;
+document.getElementById('debugInfo').textContent = `Room:${roomId} | P:${playerNum} | ${namaPlayer}`;
 
-// TAMPILIN DEBUG DI LAYAR
-document.getElementById('debugBox').innerHTML = `
-  <div style="margin-top:15px;font-size:11px">
-    Room: ${roomId}<br>
-    Player: ${namaPlayer}<br>
-    Num: ${playerNum}
-  </div>
-`;
+let roomData = null;
+let currentCard = null;
+let timer = 120;
+let timerInterval = null;
+let unsubscribe = null;
+let playerRef = null;
+
+// 100 KARTU LENGKAP
+const kartu = [
+  {kategori:"FRUIT", jawaban:"JERUK", hint:"J _ K"},
+  {kategori:"CITY", jawaban:"JAKARTA", hint:"J _ K _ R _ A"},
+  {kategori:"ANIMAL", jawaban:"JANGKRIK", hint:"J _ N _ K _ I _"},
+  {kategori:"COUNTRY", jawaban:"JEPANG", hint:"J _ P _ N"},
+  {kategori:"PLANT", jawaban:"JAMBU", hint:"J _ M _ U"},
+  {kategori:"FRUIT", jawaban:"MANGGA", hint:"M _ N _ G _"},
+  {kategori:"CITY", jawaban:"BANDUNG", hint:"B _ N _ U _ G"},
+  {kategori:"ANIMAL", jawaban:"MACAN", hint:"M _ C _ N"},
+  {kategori:"COUNTRY", jawaban:"MALAYSIA", hint:"M _ L _ Y _ I _"},
+  {kategori:"PLANT", jawaban:"MELATI", hint:"M _ L _ T _"},
+  {kategori:"FRUIT", jawaban:"APEL", hint:"A _ E _"},
+  {kategori:"CITY", jawaban:"SURABAYA", hint:"S _ R _ B _ Y _"},
+  {kategori:"ANIMAL", jawaban:"SINGA", hint:"S _ N _ A"},
+  {kategori:"COUNTRY", jawaban:"SINGAPURA", hint:"S _ N _ A _ O _ E"},
+  {kategori:"PLANT", jawaban:"SAWO", hint:"S _ W _"},
+  {kategori:"FRUIT", jawaban:"ANGGUR", hint:"A _ G _ U _"},
+  {kategori:"CITY", jawaban:"MEDAN", hint:"M _ D _ N"},
+  {kategori:"ANIMAL", jawaban:"KELINCI", hint:"K _ L _ N _ I"},
+  {kategori:"COUNTRY", jawaban:"KOREA", hint:"K _ R _ A"},
+  {kategori:"PLANT", jawaban:"KELAPA", hint:"K _ L _ P _"},
+  {kategori:"FRUIT", jawaban:"PISANG", hint:"P _ S _ N _"},
+  {kategori:"CITY", jawaban:"YOGYAKARTA", hint:"Y _ G _ A _ A _ T _"},
+  {kategori:"ANIMAL", jawaban:"GAJAH", hint:"G _ J _ H"},
+  {kategori:"COUNTRY", jawaban:"THAILAND", hint:"T _ A _ L _ N _"},
+  {kategori:"PLANT", jawaban:"ANGGREK", hint:"A _ G _ E _ K"},
+  {kategori:"FRUIT", jawaban:"SEMANGKA", hint:"S _ M _ N _ K _"},
+  {kategori:"CITY", jawaban:"BALIKPAPAN", hint:"B _ L _ K _ A _ A _"},
+  {kategori:"ANIMAL", jawaban:"HARIMAU", hint:"H _ R _ M _ U"},
+  {kategori:"COUNTRY", jawaban:"AUSTRALIA", hint:"A _ S _ R _ L _ A"},
+  {kategori:"PLANT", jawaban:"KAMBOJA", hint:"K _ M _ O _ A"},
+  {kategori:"FRUIT", jawaban:"NANAS", hint:"N _ N _ S"},
+  {kategori:"CITY", jawaban:"MAKASSAR", hint:"M _ K _ S _ A _"},
+  {kategori:"ANIMAL", jawaban:"BUAYA", hint:"B _ A _ A"},
+  {kategori:"COUNTRY", jawaban:"INDIA", hint:"I _ D _ A"},
+  {kategori:"PLANT", jawaban:"MAWAR", hint:"M _ W _ R"},
+  {kategori:"FRUIT", jawaban:"SALAK", hint:"S _ L _ K"},
+  {kategori:"CITY", jawaban:"PALEMBANG", hint:"P _ L _ M _ A _ G"},
+  {kategori:"ANIMAL", jawaban:"MONKEY", hint:"M _ N _ E _"},
+  {kategori:"COUNTRY", jawaban:"CHINA", hint:"C _ I _ A"},
+  {kategori:"PLANT", jawaban:"BUNGA", hint:"B _ N _ A"},
+  {kategori:"FRUIT", jawaban:"DURIAN", hint:"D _ R _ A _"},
+  {kategori:"CITY", jawaban:"SEMARANG", hint:"S _ M _ R _ N _"},
+  {kategori:"ANIMAL", jawaban:"KUCING", hint:"K _ C _ N _"},
+  {kategori:"COUNTRY", jawaban:"AMERICA", hint:"A _ E _ I _ A"},
+  {kategori:"PLANT", jawaban:"TEBU", hint:"T _ B _"},
+  {kategori:"FRUIT", jawaban:"RAMBUTAN", hint:"R _ M _ U _ A _"},
+  {kategori:"CITY", jawaban:"DENPASAR", hint:"D _ N _ A _ A _"},
+  {kategori:"ANIMAL", jawaban:"ULAR", hint:"U _ A _"},
+  {kategori:"COUNTRY", jawaban:"ENGLAND", hint:"E _ G _ A _ D"},
+  {kategori:"PLANT", jawaban:"PADI", hint:"P _ D _"},
+  {kategori:"FRUIT", jawaban:"MELON", hint:"M _ L _ N"},
+  {kategori:"CITY", jawaban:"BATAM", hint:"B _ T _ M"},
+  {kategori:"ANIMAL", jawaban:"IKAN", hint:"I _ A _"},
+  {kategori:"COUNTRY", jawaban:"JAPAN", hint:"J _ P _ N"},
+  {kategori:"PLANT", jawaban:"SAWI", hint:"S _ W _"},
+  {kategori:"FRUIT", jawaban:"LECI", hint:"L _ C _"},
+  {kategori:"CITY", jawaban:"PADANG", hint:"P _ D _ N _"},
+  {kategori:"ANIMAL", jawaban:"KAMBING", hint:"K _ M _ I _ G"},
+  {kategori:"COUNTRY", jawaban:"GERMANY", hint:"G _ R _ A _ Y"},
+  {kategori:"PLANT", jawaban:"KANGKUNG", hint:"K _ N _ U _ G"},
+  {kategori:"FRUIT", jawaban:"BELIMBING", hint:"B _ L _ M _ I _ G"},
+  {kategori:"CITY", jawaban:"BANJARMASIN", hint:"B _ N _ A _ M _ S _ N"},
+  {kategori:"ANIMAL", jawaban:"SAPI", hint:"S _ P _"},
+  {kategori:"COUNTRY", jawaban:"ITALY", hint:"I _ A _ Y"},
+  {kategori:"PLANT", jawaban:"BAYAM", hint:"B _ Y _ M"},
+  {kategori:"FRUIT", jawaban:"KENANGKA", hint:"K _ N _ N _ K _"},
+  {kategori:"CITY", jawaban:"MANADO", hint:"M _ N _ D _"},
+  {kategori:"ANIMAL", jawaban:"KELELAWAR", hint:"K _ L _ L _ W _ R"},
+  {kategori:"COUNTRY", jawaban:"FRANCE", hint:"F _ A _ C _"},
+  {kategori:"PLANT", jawaban:"TANAMAN", hint:"T _ N _ M _ N"},
+  {kategori:"FRUIT", jawaban:"SALAK", hint:"S _ L _ K"},
+  {kategori:"CITY", jawaban:"GORONTALO", hint:"G _ R _ N _ A _ O"},
+  {kategori:"ANIMAL", jawaban:"BERUANG", hint:"B _ R _ A _ G"},
+  {kategori:"COUNTRY", jawaban:"BRAZIL", hint:"B _ A _ I _"},
+  {kategori:"PLANT", jawaban:"KELOR", hint:"K _ L _ R"},
+  {kategori:"FRUIT", jawaban:"DUKU", hint:"D _ K _"},
+  {kategori:"CITY", jawaban:"TASIKMALAYA", hint:"T _ S _ K _ A _ A _ A"},
+  {kategori:"ANIMAL", jawaban:"KUDA", hint:"K _ D _"},
+  {kategori:"COUNTRY", jawaban:"RUSSIA", hint:"R _ S _ I _"},
+  {kategori:"PLANT", jawaban:"LIDAH", hint:"L _ D _ H"},
+  {kategori:"FRUIT", jawaban:"MANGIS", hint:"M _ N _ G _ S"},
+  {kategori:"CITY", jawaban:"PEKANBARU", hint:"P _ K _ N _ A _ U"},
+  {kategori:"ANIMAL", jawaban:"SERIGALA", hint:"S _ R _ G _ L _"},
+  {kategori:"COUNTRY", jawaban:"SPAIN", hint:"S _ A _ N"},
+  {kategori:"PLANT", jawaban:"BAMBU", hint:"B _ M _ U"},
+  {kategori:"FRUIT", jawaban:"MANGKIS", hint:"M _ N _ G _ S"},
+  {kategori:"CITY", jawaban:"SORONG", hint:"S _ R _ N _"},
+  {kategori:"ANIMAL", jawaban:"BURUNG", hint:"B _ R _ N _"},
+  {kategori:"COUNTRY", jawaban:"CANADA", hint:"C _ N _ D _"},
+  {kategori:"PLANT", jawaban:"PANDAN", hint:"P _ N _ A _"},
+  {kategori:"FRUIT", jawaban:"KWENI", hint:"K _ E _ I"},
+  {kategori:"CITY", jawaban:"TANGERANG", hint:"T _ N _ E _ A _ G"},
+  {kategori:"ANIMAL", jawaban:"TUPAI", hint:"T _ P _ I"},
+  {kategori:"COUNTRY", jawaban:"EGYPT", hint:"E _ Y _ T"},
+  {kategori:"PLANT", jawaban:"JAHE", hint:"J _ H _"}
+];
 
 if(!roomId ||!namaPlayer ||!playerNum){
-  document.getElementById('loading').innerHTML = `
-    <div style="color:#EF4444">Data Hilang!</div>
-    <div class="error-box">Room: ${roomId}<br>Player: ${namaPlayer}<br>Num: ${playerNum}</div>
-    <button class="btn" onclick="location.href='./index.html'">Back to Lobby</button>
-  `;
+  showPopup("❌ Data Hilang", "Back to lobby in 3s...", 3000);
+  setTimeout(()=>window.location.href = './index.html', 3000);
 }
 
-// TEST 1: CEK KONEKSI FIREBASE
-db.ref('.info/connected').on('value', (snap)=>{
-  if(snap.val() === false){
-    document.getElementById('debugBox').innerHTML += `<br><span style="color:#EF4444">Firebase OFFLINE</span>`;
-  } else {
-    document.getElementById('debugBox').innerHTML += `<br><span style="color:#10B981">Firebase ONLINE</span>`;
+const roomRef = ref(db, 'rooms/' + roomId);
+playerRef = ref(db, 'rooms/' + roomId + '/player' + playerNum);
+
+// ON DISCONNECT
+onDisconnect(playerRef).set(null);
+if(playerNum === '1'){
+  onDisconnect(roomRef).remove();
+}
+
+// TIMEOUT WARNING 3 DETIK KALO FIREBASE LAMBAT
+setTimeout(()=>{
+  if(!roomData){
+    showPopup('⚠️ Slow Connection', 'Firebase lambat tapi game tetep jalan', 3000);
   }
+}, 3000);
+
+// LISTEN FIREBASE REALTIME
+unsubscribe = onValue(roomRef, (snapshot)=>{
+  if(!snapshot.exists()){
+    showPopup("❌ Room Deleted", "Room not found! Back to lobby", 2000);
+    setTimeout(()=>window.location.href = './index.html', 2000);
+    return;
+  }
+
+  roomData = snapshot.val();
+  document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + roomId;
+
+  // Auto delete logic
+  if(!roomData.player1 &&!roomData.player2){
+    remove(roomRef);
+    showPopup("🏠 Room Empty", "Room deleted automatically", 2000);
+    setTimeout(()=>window.location.href = './index.html', 2000);
+    return;
+  }
+  if(!roomData.player1 && playerNum === '2'){
+    showPopup("👋 Host Left", "Host disconnected. Room closed", 2000);
+    setTimeout(()=>window.location.href = './index.html', 2000);
+    return;
+  }
+
+  updateUI();
+}, (error)=>{
+  console.error("Firebase error:", error);
+  showPopup('❌ Firebase Error', error.message, 4000);
 });
 
-// TIMEOUT 4 DETIK
-let timeout = setTimeout(()=>{
-  document.getElementById('debugBox').innerHTML += `
-    <div class="error-box">
-      TIMEOUT 4 DETIK!<br><br>
-      Penyebab:<br>
-      1. Rules Firebase belum Publish<br>
-      2. Room ${roomId} udah kehapus<br>
-      3. GitHub Pages HTTPS error<br><br>
-      Solusi: Buka link ini di Chrome:<br>
-      https://tebak-kata-reborn-default-rtdb.asia-southeast1.firebasedatabase.app/rooms/${roomId}.json
-    </div>
-    <button class="btn" onclick="location.href='./index.html'">Back</button>
-  `;
-}, 4000);
+function updateUI(){
+  document.getElementById('scoreName1').textContent = roomData.player1.nama.toUpperCase();
+  document.getElementById('scoreName2').textContent = roomData.player2? roomData.player2.nama.toUpperCase() : 'WAITING...';
+  document.getElementById('score1').textContent = roomData.player1.score || 0;
+  document.getElementById('score2').textContent = roomData.player2? roomData.player2.score : 0;
+  document.getElementById('babakNow').textContent = roomData.babak || 1;
 
-// TEST 2: GET DATA LANGSUNG
-db.ref('rooms/' + roomId).once('value').then((snap)=>{
-  clearTimeout(timeout);
+  const giliran = roomData.giliran || 1;
+  document.getElementById('scoreCard1').classList.toggle('active', giliran===1);
+  document.getElementById('scoreCard2').classList.toggle('active', giliran===2);
+
+  const isPengambil = (giliran===1 && playerNum==='1') || (giliran===2 && playerNum==='2');
+  document.getElementById('areaPengambil').style.display = isPengambil? 'block' : 'none';
+  document.getElementById('areaPenebak').style.display =!isPengambil? 'block' : 'none';
+
+  if(roomData.currentCard){
+    currentCard = roomData.currentCard;
+    document.getElementById('cardKategori').textContent = currentCard.kategori;
+    document.getElementById('cardHint').textContent = currentCard.hint;
+    document.getElementById('cardJawaban').textContent = currentCard.jawaban;
+    document.getElementById('cardJawaban').style.display = roomData.showAnswer? 'block' : 'none';
+    document.getElementById('card').classList.add('show');
+  } else {
+    document.getElementById('card').classList.remove('show');
+  }
+
+  if(roomData.timerStart && roomData.status==='playing'){
+    const elapsed = Math.floor((Date.now() - roomData.timerStart)/1000);
+    timer = Math.max(0, 120 - elapsed);
+    updateTimer();
+    if(timer>0 &&!timerInterval){
+      timerInterval = setInterval(()=>{
+        timer--;
+        updateTimer();
+        if(timer<=0){
+          clearInterval(timerInterval);
+          timerInterval = null;
+          if(isPengambil) timeUp();
+        }
+      }, 1000);
+    }
+  }
+
+  if(roomData.status==='finished'){
+    const winner = roomData.player1.score>roomData.player2.score? roomData.player1.nama : roomData.player2.score>roomData.player1.score? roomData.player2.nama : 'DRAW';
+    showPopup('🏆 GAME OVER!', winner==='DRAW'? `Score: ${roomData.player1.score} - ${roomData.player2.score}` : `Winner: ${winner}`, 5000);
+  }
+}
+
+window.ambilKartu = async function(){
+  const giliran = roomData.giliran || 1;
+  const isPengambil = (giliran===1 && playerNum==='1') || (giliran===2 && playerNum==='2');
+  if(!isPengambil) return;
+
+  const card = kartu[Math.floor(Math.random()*kartu.length)];
+  currentCard = card;
+
+  await update(roomRef, {
+    currentCard: card,
+    showAnswer: false,
+    status: 'playing',
+    timerStart: Date.now()
+  });
+
+  document.getElementById('areaPengambil').querySelector('button').disabled = true;
+  showPopup('🔔 Your Turn!', `${giliran===1? roomData.player2.nama : roomData.player1.nama} is guessing...`, 2000);
+}
+
+function updateTimer(){
+  const min = String(Math.floor(timer/60)).padStart(2,'0');
+  const sec = String(timer%60).padStart(2,'0');
+  const timerEl = document.getElementById('timer');
+  timerEl.textContent = `${min}:${sec}`;
+  timerEl.classList.toggle('warning', timer<=10);
+}
+
+window.submitJawaban = async function(){
+  const isPengambil = (roomData.giliran===1 && playerNum==='1') || (roomData.giliran===2 && playerNum==='2');
+  if(isPengambil) return;
+
+  const jawaban = document.getElementById('inputJawab').value.trim().toUpperCase();
+  clearInterval(timerInterval);
+  timerInterval = null;
+
+  let updateData = {
+    showAnswer: true,
+    status: 'waiting'
+  };
+
+  if(jawaban === currentCard.jawaban){
+    if(roomData.giliran===2) updateData['player2/score'] = (roomData.player2.score||0) + 15;
+    else updateData['player1/score'] = (roomData.player1.score||0) + 15;
+    
+    if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
+    else updateData['player2/score'] = (roomData.player2.score||0) + 5;
+    
+    showPointsPopup('+15', roomData.giliran===2? 2 : 1);
+    showPopup('🎉 CORRECT!', `${roomData.giliran===1? roomData.player2.nama : roomData.player1.nama} got +15 points!`, 2500);
+  } else {
+    if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
+    else updateData['player2/score'] = (roomData.player2.score||0) + 5;
+    
+    showPointsPopup('+5', roomData.giliran===1? 1 : 2);
+    showPopup('❌ WRONG!', `Answer: ${currentCard.jawaban}`, 2500);
+  }
+
+  await update(roomRef, updateData);
+  document.getElementById('inputJawab').value = '';
+}
   
-  if(!snap.exists()){
-    document.getElementById('loading').innerHTML = `
-      <div style="color:#EF4444">Room Gak Ada!</div>
-      <div class="error-box">Room ${roomId} tidak ditemukan di Firebase.<br>Udah ke-delete onDisconnect</div>
-      <button class="btn" onclick="location.href='./index.html'">Back</button>
-    `;
+async function timeUp(){
+  clearInterval(timerInterval);
+  timerInterval = null;
+  let updateData = {
+    showAnswer: true,
+    status: 'waiting'
+  };
+  if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
+  else updateData['player2/score'] = (roomData.player2.score||0) + 5;
+  
+  await update(roomRef, updateData);
+  showPointsPopup('+5', roomData.giliran===1? 1 : 2);
+  showPopup('⏰ TIME UP!', `Answer: ${currentCard.jawaban}`, 2500);
+}
+  
+window.lewatiBabak = async function(){
+  const isPengambil = (roomData.giliran===1 && playerNum==='1') || (roomData.giliran===2 && playerNum==='2');
+  if(!isPengambil) return;
+  
+  clearInterval(timerInterval);
+  timerInterval = null;
+  let updateData = {
+    showAnswer: true,
+    status: 'waiting'
+  };
+  if(roomData.giliran===1) updateData['player1/score'] = (roomData.player1.score||0) + 5;
+  else updateData['player2/score'] = (roomData.player2.score||0) + 5;
+  
+  await update(roomRef, updateData);
+  showPopup('⏭️ SKIPPED!', `Answer: ${currentCard.jawaban}`, 2500);
+}
+  
+window.nextBabak = async function(){
+  closePopup();
+  const babakBaru = (roomData.babak || 1) + 1;
+  const giliranBaru = roomData.giliran === 1 ? 2 : 1;
+  
+  if(babakBaru > 10){
+    await update(roomRef, { status: 'finished' });
     return;
   }
   
-  // KALO SAMPE SINI BERARTI SUKSES
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('gameContainer').style.display = 'block';
-  document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + roomId;
+  await update(roomRef, {
+    babak: babakBaru,
+    giliran: giliranBaru,
+    currentCard: null,
+    showAnswer: false,
+    status: 'waiting',
+    timerStart: null
+  });
   
-}).catch((err)=>{
-  clearTimeout(timeout);
-  document.getElementById('loading').innerHTML = `
-    <div style="color:#EF4444">Firebase Error!</div>
-    <div class="error-box">
-      Code: ${err.code}<br>
-      Message: ${err.message}<br><br>
-      Kalo "permission_denied" = Rules belum true<br>
-      Kalo "network_error" = Internet/Https error
-    </div>
-    <button class="btn" onclick="location.href='./index.html'">Back</button>
-  `;
-});
-</script>
-</body>
-</html>
+  document.getElementById('areaPengambil').querySelector('button').disabled = false;
+  timer = 120;
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = null;
+}
+  
+function showPopup(icon, title, text, duration=3000){
+  document.getElementById('popupIcon').textContent = icon;
+  document.getElementById('popupTitle').textContent = title;
+  document.getElementById('popupText').textContent = text;
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('popup').classList.add('show');
+  setTimeout(closePopup, duration);
+}
+  
+function closePopup(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('popup').classList.remove('show');
+  }
+  
+  function showPointsPopup(text, player){
+  const popup = document.getElementById('pointsPopup');
+  popup.textContent = text;
+  popup.classList.add('show');
+  setTimeout(()=>popup.classList.remove('show'), 1000);
+  }
+  
+  window.keluarRoom = async function(){
+  if(confirm('Leave room?')){
+    if(playerNum === '1'){
+      await remove(roomRef);
+    } else {
+      await set(playerRef, null);
+    }
+    localStorage.clear();
+    window.location.href = './index.html';
+  }
+  }
+  
+  window.addEventListener('beforeunload', ()=>{
+  if(playerNum === '1'){
+    remove(roomRef);
+  } else {
+    set(playerRef, null);
+  }
+  });
+  
+  // Enter to submit
+  document.getElementById('inputJawab')?.addEventListener('keypress', (e)=>{
+  if(e.key === 'Enter') submitJawaban();
+  });
+  </script>
+  </body>
+  </html>
