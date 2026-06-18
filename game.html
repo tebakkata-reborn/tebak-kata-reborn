@@ -162,7 +162,7 @@ let roomId = urlParams.get('room');
 const namaPlayer = localStorage.getItem('namaPlayer');
 let playerNum = parseInt(localStorage.getItem('playerNum')) || 0;
 
-roomId = roomId ? roomId.toUpperCase() : null;
+roomId = roomId ? roomId.toUpperCase().trim() : null;
 document.getElementById('roomCodeDisplay').textContent = 'ROOM: ' + (roomId || '----');
 
 let roomData = null;
@@ -278,12 +278,18 @@ if(!roomId || !namaPlayer || !playerNum || playerNum < 1 || playerNum > 2){
 const roomRef = ref(db, 'rooms/' + roomId);
 playerRef = ref(db, 'rooms/' + roomId + '/player' + playerNum);
 
+alert("RoomId: " + roomId + " | PlayerNum: " + playerNum); // DEBUG 1
+
 onDisconnect(playerRef).set(null);
 if(playerNum === 1){
   onDisconnect(roomRef).remove();
 }
 
+alert("Mau listen Firebase..."); // DEBUG 2
+
 unsubscribe = onValue(roomRef, async (snapshot)=>{
+  alert("Firebase ngerespon! Ada data: " + snapshot.exists()); // DEBUG 3
+  
   if(!snapshot.exists()){
     alert("❌ Room Deleted! Back to lobby");
     window.location.href = './index.html';
@@ -295,11 +301,8 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
   document.getElementById('debugInfo').textContent = 
     `Room:${roomId} | P:${playerNum} | Giliran:${roomData.giliran} | P1:${!!roomData.player1} | P2:${!!roomData.player2}`;
   
-  console.log("Room data:", roomData);
-
   if(roomData.player1 && roomData.player2 && (roomData.giliran === undefined || roomData.giliran === null || roomData.giliran === 0)){
     const acak = Math.floor(Math.random() * 2) + 1;
-    console.log("🎲 Acak dadu:", acak);
     await update(roomRef, { 
       giliran: acak,
       babak: 1,
@@ -310,8 +313,7 @@ unsubscribe = onValue(roomRef, async (snapshot)=>{
 
   updateUI();
 }, (error)=>{
-  console.error("Firebase error:", error);
-  alert("Firebase error: " + error.message);
+  alert("Firebase ERROR onValue: " + error.message); // DEBUG 4
 });
 
 function updateUI(){
