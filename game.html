@@ -23,7 +23,7 @@ const firebaseConfig = {
 let db;
 try {
   const app = initializeApp(firebaseConfig);
-  db = getDatabase(app, firebaseConfig.databaseURL);
+  db = getDatabase(app); // HAPUS firebaseConfig.databaseURL, cukup app aja
   window.db = db;
   window.ref = ref;
   window.set = set;
@@ -33,8 +33,10 @@ try {
   window.remove = remove;
   window.serverTimestamp = serverTimestamp;
   window.onDisconnect = onDisconnect;
+  
+  alert("Firebase OK!"); // DEBUG: kalo ini gak muncul = import gagal
 } catch(e) {
-  console.error("Firebase error:", e);
+  alert("Firebase ERROR: " + e.message); // DEBUG: ini pasti muncul kalo error
 }
 </script>
 <style>
